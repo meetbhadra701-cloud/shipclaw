@@ -752,7 +752,7 @@ export default function App() {
                 {runState.finalDecision.toUpperCase()}
               </div>
               {runState.assessorOutput?.explanation && (
-                <p className="text-sm mt-2" style={{ color: "var(--color-text-muted)" }}>
+                <p className="text-sm mt-2 text-muted">
                   {runState.assessorOutput.explanation}
                 </p>
               )}
@@ -985,7 +985,7 @@ export default function App() {
                   {runState.approval.riskLevel.toUpperCase()}
                 </span>
               </p>
-              <p className="text-sm" style={{ marginTop: "var(--space-2)", color: "var(--color-text-muted)" }}>
+              <p className="text-sm mt-2 text-muted">
                 {runState.approval.actionDescription}
               </p>
               <div className="approval-actions">

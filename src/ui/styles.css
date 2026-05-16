@@ -651,7 +651,7 @@ body {
 
 .category-table th {
   text-align: left;
-  padding: var(--space-2) var(--space-3);
+  padding: 10px 14px;
   background: rgba(255,255,255,0.04);
   border-bottom: 1px solid var(--border-bright);
   font-weight: 700;
@@ -663,10 +663,14 @@ body {
 }
 
 .category-table td {
-  padding: var(--space-2) var(--space-3);
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
   color: var(--color-text);
+}
+
+.category-table tbody tr:nth-child(even) td {
+  background: rgba(255,255,255,0.02);
 }
 
 .category-table tr:last-child td {
@@ -674,7 +678,7 @@ body {
 }
 
 .category-table tbody tr:hover td {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.04);
 }
 
 .pass-icon { color: var(--color-ready); }
