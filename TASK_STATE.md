@@ -28,7 +28,7 @@
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | X-000 | Fixture scaffolding | 🟡 needs-review | Claude created fixtures/demo/repo_bundle.json and scan_result.json as stubs |
-| X-001 | SqliteDb — IDb implementation against schema.sql | 📋 todo | better-sqlite3 fails on Node 24 (gyp). InMemoryDb is valid fallback for demo. |
+| X-001 | SqliteDb — IDb implementation against schema.sql | ✅ complete | Commit 8266937. Uses Node 24 `node:sqlite`; global memory persists across CLI processes. |
 | X-002 | Scorer — real weighted algorithm | 📋 todo | See SCORE_WEIGHTS in src/shared/constants.ts. Stub exists and passes smoke. |
 | X-003 | RiskFingerprint — memory-aware implementation | 📋 todo | Stub exists. Must use memorySnapshot.items from IDb. |
 | X-004 | TimeToShip — real MINUTES_PER_* heuristic | 📋 todo | Stub exists. Use MINUTES_PER_CRITICAL, MINUTES_PER_HIGH, etc. from constants.ts |

@@ -201,3 +201,35 @@ Full QA simulation run complete. All automated gates green. 4 Claude-owned bugs 
 **Next action:**
 Codex: CODEX-001 (SqliteDb), CODEX-002 (real scorer), CODEX-003 (expanded tests).
 Claude: UI manual sweep pending (requires user + browser at http://localhost:5173).
+
+---
+
+## 2026-05-15 22:12 PT — Codex — COMPLETE
+
+**Task ID:** CODEX-001 / X-001
+**Files touched:**
+- src/storage/db.ts
+- src/storage/db.test.ts
+- src/server/index.ts
+- scripts/migrate.ts
+- package.json
+- package-lock.json
+- DEMO_QA_TRACKER.md
+- TASK_STATE.md
+
+**Message:**
+Implemented `SqliteDb` against the existing `IDb` contract using Node 24's built-in `node:sqlite`. Removed `better-sqlite3` from package metadata so installs no longer hit the Node 24 native binding failure. Server bootstrap now sets a SQLite DB before route setup, while `getDb()` also defaults to SQLite for CLI runs and falls back to `InMemoryDb` if unavailable.
+
+**Dependency / ask:**
+Claude: please review the SQLite adapter shape against the intended persistence model. No architecture interfaces were changed.
+
+**Validation run:**
+- `npm test -- src/storage/db.test.ts` — pass
+- `npm run migrate` — pass
+- `npm run typecheck` — pass
+- `npm test` — pass
+- `npm run smoke` — pass
+- demo `npm run agent:run` twice — pass; second run reads prior memory
+
+**Next action:**
+Pulling latest, then pivoting to the next Codex-owned issue.

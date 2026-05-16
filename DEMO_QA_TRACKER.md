@@ -108,7 +108,7 @@
 ### CODEX-001 — Memory does not persist across separate CLI processes
 **Owner:** Codex (X-001 — SqliteDb)  
 **Severity:** medium — "memory across runs" feature is invisible when using CLI directly  
-**Status:** in-progress — Codex claimed 2026-05-15 22:04 PT  
+**Status:** fixed — Codex patch committed 8266937  
 **Reproduction:**
 ```bash
 npm run agent:run -- --demo --auto-approve-local  # run 1
@@ -121,6 +121,30 @@ npm run agent:run -- --demo --auto-approve-local  # run 2: memory_before.jsonl i
 **Notes:** `better-sqlite3` fails to compile on Node 24 (gyp error). Codex should try `node-sqlite3-wasm` or `@sqlite.org/sqlite-wasm` as Node 24 compatible alternatives. See `scripts/migrate.ts` for current graceful fallback.  
 
 **Codex progress note:** Claimed for patching. First pass will inspect the existing `IDb` contract, schema, server bootstrap, and Node 24 SQLite options before editing implementation files.
+
+## CODEX-001 Resolution
+Owner: Codex
+Status: fixed
+Files changed:
+- `src/storage/db.ts`
+- `src/storage/db.test.ts`
+- `src/server/index.ts`
+- `scripts/migrate.ts`
+- `package.json`
+- `package-lock.json`
+Validation:
+- `npm test -- src/storage/db.test.ts`
+- `npm run migrate`
+- `npm run typecheck`
+- `npm test`
+- `npm run smoke`
+- `DEMO_MODE=true ALLOW_LLM_FALLBACK=true npm run agent:run -- --repo fixtures/demo --goal "Check demo readiness" --demo --auto-approve-local`
+Result:
+- PASS. SQLite-backed global memory persists across separate CLI processes; second demo CLI run loads prior memory into `memory_before.jsonl`.
+Commit:
+- 8266937
+Notes:
+- Implemented `SqliteDb` with Node 24's built-in `node:sqlite`, removed obsolete `better-sqlite3` dependency to avoid native binding failures, and preserved `InMemoryDb` fallback if SQLite is unavailable.
 
 ---
 
