@@ -58,9 +58,9 @@ function buildReadinessMd(input: ReportInput): string {
 
   const modeNote =
     mode === "fallback"
-      ? `> ⚠️ ${FALLBACK_BANNER}\n`
+      ? `> ${FALLBACK_BANNER}\n`
       : mode === "demo"
-      ? `> 🔬 ${DEMO_BANNER}\n`
+      ? `> ${DEMO_BANNER}\n`
       : "";
 
   // Section 1: Title + Metadata
@@ -108,7 +108,7 @@ function buildReadinessMd(input: ReportInput): string {
     `\`\`\``,
     `0──────40──────71──────100`,
     `│ NOT_READY │ RISKY │ READY │`,
-    `             ${"▲".padStart(Math.max(1, Math.min(score.total, 99)))}  ← ${score.total}`,
+    `${"▲".padStart(Math.round((score.total / 100) * 24) + 1)}  ← ${score.total}`,
     `\`\`\``,
     ``,
   ].join("\n");

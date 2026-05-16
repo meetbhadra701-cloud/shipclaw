@@ -47,6 +47,24 @@
 
 ---
 
+## QA Pass (Claude QA Lead — 2026-05-16)
+
+| Check | Status |
+|---|---|
+| `npm run typecheck` | ✅ 0 errors |
+| `npm test` | ✅ 6/6 passed |
+| `npm run smoke` | ✅ 20/20 passed |
+| Demo mode agent run | ✅ HOLD 59/100, FINALIZE reached, 6 artifacts |
+| All 9 API endpoints | ✅ correct shapes |
+| BUG-001 double emoji | ✅ fixed |
+| BUG-002 Finished: — | ✅ fixed |
+| BUG-003 score band arrow | ✅ fixed |
+| BUG-004 1-byte jsonl | ✅ fixed |
+| CODEX-001 SqliteDb | ⚠️ open — assigned to Codex |
+| CODEX-002 real scorer evidence | ⚠️ open — assigned to Codex |
+| CODEX-003 test coverage | ⚠️ open — assigned to Codex |
+| UI manual sweep | ⬜ requires browser |
+
 ## Final MVP Gate checklist
 
 | Check | Status |
@@ -55,7 +73,7 @@
 | `npm test` | ✅ 6/6 passed (scorer.test.ts — Codex to expand in X-006) |
 | `npm run smoke` | ✅ 20/20 checks passed |
 | Demo mode agent run | ✅ runs to FINALIZE, generates all artifacts |
-| `npm run dev` — UI sweep | 📋 pending manual sweep |
+| `npm run dev` — UI sweep | ⬜ pending manual sweep |
 | Fallback banner visible | ✅ mode-banner--fallback CSS + JSX |
 | Deterministic score | ✅ computed at CALCULATE_SCORE before Nemotron |
 | Evidence table | ✅ in report section 13 (empty when Exa disabled) |

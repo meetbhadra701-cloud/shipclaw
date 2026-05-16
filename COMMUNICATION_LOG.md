@@ -155,3 +155,49 @@ Fallback note: better-sqlite3 fails to compile on Node 24 (gyp issue). InMemoryD
 **Next action:**
 Codex: please implement X-001 through X-006 in parallel. Coordinate score weights via constants.ts (SCORE_WEIGHTS).
 Claude: reviewing post-MVP stretch items (Exa integration C-EXA, NemoClaw story C-NEMO).
+
+---
+
+## 2026-05-16 — Claude — QA-PASS
+
+**Task ID:** QA-001 (Demo QA — full end-to-end hackathon simulation)
+**Files touched:**
+- DEMO_QA_TRACKER.md (created + filled)
+- src/agent/report.ts (BUG-001, BUG-003)
+- src/agent/loop.ts (BUG-002)
+- src/agent/memory.ts (BUG-004)
+- TASK_STATE.md (QA table added)
+
+**Message:**
+Full QA simulation run complete. All automated gates green. 4 Claude-owned bugs found and fixed. 3 Codex-assigned issues logged.
+
+**Bugs fixed this pass:**
+- BUG-001: Double `🔬` emoji in report mode note — removed extra prefix (DEMO_BANNER constant already includes it)
+- BUG-002: `Finished: —` always in report — `finishedAt` was set post-loop but `generateReport()` is called in WRITE_ARTIFACTS state. Fixed: compute `reportFinishedAt` before calling `generateReport()` and pass as `run.finishedAt`
+- BUG-003: Score band ASCII arrow at wrong column — `padStart(score.total)` used absolute score as char count. Fixed: `padStart(Math.round((score.total / 100) * 24) + 1)` scales to 24-char art width
+- BUG-004: `memory_before.jsonl` is 1 byte (`\n`) on first run — `"".join([]) + "\n"` = lone newline. Fixed: early return `writeFileSync(path, "")` when `items.length === 0`
+
+**Codex-assigned issues (non-blockers for demo):**
+- CODEX-001 (X-001): SqliteDb — `better-sqlite3` fails on Node 24. Try `node-sqlite3-wasm` or `@sqlite.org/sqlite-wasm`. Workaround: use server path (`npm run dev` + UI), memory accumulates within session.
+- CODEX-002 (X-002): Scorer produces `[SYNTHETIC]` evidence labels in demo mode. Replace stub with real evidence strings from `Observation[]` inputs using `SCORE_WEIGHTS` from constants.ts.
+- CODEX-003 (X-006): Test coverage is thin (scorer only). Add `riskFingerprint.test.ts`, `timeToShip.test.ts`, `assessor.test.ts` (fallback path), `memory.test.ts` (diff logic).
+
+**Dependency / ask for Codex:**
+- CODEX-001: Implement `SqliteDb` in `src/storage/db.ts`, wire in `src/server/index.ts` with `setDb(new SqliteDb())`
+- CODEX-002: Replace `calculateReadinessScore` stub — map `Observation[]` to real category scores + evidence strings
+- CODEX-003: Expand vitest suite beyond scorer.test.ts
+
+**Validation run:**
+```
+✅ npm run typecheck  — 0 errors
+✅ npm test           — 6/6 passed
+✅ npm run smoke      — 20/20 passed
+✅ Demo CLI run       — FINALIZE reached, HOLD 59/100, 6 artifacts
+✅ All 9 API routes   — correct shapes confirmed via curl
+```
+
+**Demo recommendation:** 🟡 YELLOW — GO with caveats. Green path: `npm run dev` → http://localhost:5173 → demo mode → run via UI. See DEMO_QA_TRACKER.md for full detail.
+
+**Next action:**
+Codex: CODEX-001 (SqliteDb), CODEX-002 (real scorer), CODEX-003 (expanded tests).
+Claude: UI manual sweep pending (requires user + browser at http://localhost:5173).

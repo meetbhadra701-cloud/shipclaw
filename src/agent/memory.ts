@@ -78,6 +78,10 @@ export class MemoryManager {
   // ─── Private helpers ────────────────────────────────────────────────────────
 
   private writeJsonl(path: string, items: Array<Record<string, unknown>>) {
+    if (items.length === 0) {
+      writeFileSync(path, "", "utf-8");
+      return;
+    }
     const lines = items.map((item) => JSON.stringify(item)).join("\n");
     writeFileSync(path, lines + "\n", "utf-8");
   }

@@ -377,8 +377,9 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
       // ── WRITE_ARTIFACTS ───────────────────────────────────────────────────
       case "WRITE_ARTIFACTS": {
         db.updateRun(runId, { status: "finalizing" });
+        const reportFinishedAt = new Date().toISOString();
         await generateReport({
-          run: { ...run, readinessScore: score, riskFingerprint, timeToShip, assessorOutput: assessorOutput ?? undefined, artifactDir },
+          run: { ...run, readinessScore: score, riskFingerprint, timeToShip, assessorOutput: assessorOutput ?? undefined, artifactDir, finishedAt: reportFinishedAt },
           artifactDir,
           score,
           riskFingerprint,
