@@ -430,3 +430,45 @@ None. Proof audit is Claude-owned.
 
 **Next action:**
 Project is demo-frozen. FINAL_DEMO_PROOF.md is the authoritative pre-submission evidence document. No further code changes planned unless a live blocker is found at the venue.
+
+---
+
+## 2026-05-16 ~10:50 PT — Claude — NEMOTRON-LIVE
+
+**Task ID:** QA-007 — NVIDIA / Nemotron Live Integration Verification
+
+**Files:**
+- `.env.local` (created, gitignored, NOT committed — contains NEMOTRON_API_KEY)
+- `FINAL_DEMO_PROOF.md` (updated §3, §8, added §NVIDIA/Nemotron Live Verification)
+- `DEMO_QA_TRACKER.md` (status upgraded to GREEN)
+- `TASK_STATE.md` (C-NEMO marked complete)
+- `COMMUNICATION_LOG.md` (this entry)
+
+**Message:**
+Generated a new NVIDIA API key (`shipclaw-demo`, expires 2027-05-16) via `https://build.nvidia.com/settings/api-keys`. Configured `NEMOTRON_API_KEY`, `NEMOTRON_BASE_URL`, and `NEMOTRON_MODEL` in `.env.local` (gitignored).
+
+Fixed env var name mismatch in documentation: code uses `NEMOTRON_API_KEY` (not `NVIDIA_API_KEY`). All references in FINAL_DEMO_PROOF.md corrected.
+
+**Live verification results:**
+- Minimal ping: `{"pong":true}` returned from `mistralai/mistral-nemotron` ✅
+- Full agent run (mU2a6_IXV3aC): `confidence: 0.85` from live Nemotron ✅ (fallback hardcodes 0.70)
+- Nemotron explanation: "The release is not ready due to failing CI, low test coverage, and missing security policies." — real LLM reasoning over deterministic score inputs
+- Zero key exposure: grep clean on git diff, run artifacts, and all output
+
+**Security confirmed:**
+- `.env.local` is gitignored (verified with `git status`)
+- No nvapi-* string in any committed file
+- No secrets in COMMUNICATION_LOG, TASK_STATE, FINAL_DEMO_PROOF, or DEMO_QA_TRACKER
+
+**Automated gates (post-key-config):**
+- typecheck: 0 errors ✅
+- npm test: 34/34 ✅
+- npm run smoke: 20/20 ✅
+
+**Status upgrade: 🟡 YELLOW → 🟢 GREEN**
+
+**Dependency / ask for Codex:**
+None. Nemotron integration is Claude-owned.
+
+**Next action:**
+Project is GREEN and demo-ready. No further changes needed unless instructed.

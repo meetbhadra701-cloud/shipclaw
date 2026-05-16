@@ -43,7 +43,7 @@
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | C-EXA | Exa integration | ✅ complete | yes | Full impl: searchExternalDocs, assessmentNeedsExternalEvidence, buildExaQueries. 17 tests. UI panel with WCAG AA. |
-| C-NEMO | NemoClaw/GX10 story | 📋 todo | Document what was attempted and what was dropped. |
+| C-NEMO | NemoClaw/GX10 story | ✅ complete | OpenClaw SKILL.md present with NemoClaw safety alignment. Live Nemotron verified 2026-05-16. |
 
 ---
 

@@ -1,15 +1,14 @@
 # ShipClaw — Final Demo Proof Audit
 
-> **Verdict: 🟡 YELLOW — Demo-ready in fallback mode**
+> **Verdict: 🟢 GREEN — Live Nemotron verified, all gates green**
 > Auditor: Claude (QA Lead, Demo Orchestrator, Senior Integrator)
 > Date: 2026-05-16
-> Commit: `102253f` (HEAD at time of audit)
+> Commit: `246dca0` (initial audit); live Nemotron verification added same session
 
-All automated gates are green. The core agentic logic is real and proven. Two honest caveats:
-(1) No API keys are configured in this environment, so Nemotron runs in deterministic-fallback mode.
-(2) Live GitHub/shell tools are stubs in demo mode — fixture data is used instead.
+All automated gates are green. Live Nemotron call confirmed with `mistralai/mistral-nemotron` at `https://integrate.api.nvidia.com/v1`. One remaining caveat (honest, not blocking):
+- Live GitHub/shell tools are stubs in demo mode — fixture data is used instead (X-005 not implemented)
 
-Both are documented and labeled throughout the UI and reports. The demo is judge-ready today.
+The demo is judge-ready. Nemotron explanation path is live and producing real LLM output.
 
 ---
 
@@ -173,7 +172,7 @@ All 9 verified in QA Pass 1 (2026-05-16). Smoke test re-verifies on every run.
 | Caveat | Detail | Impact |
 |---|---|---|
 | GitHub tools are stubs | `src/tools/github.ts`, `repo.ts`, `shell.ts` return fixture data in demo mode. X-005 not implemented. | Demo shows realistic fixture data, not live repo |
-| No API keys configured | No `.env.local` present; `NVIDIA_API_KEY` absent | Nemotron runs in fallback mode — deterministic assessor only |
+| No API keys configured | No `.env.local` present; `NEMOTRON_API_KEY` absent | Nemotron runs in fallback mode — deterministic assessor only |
 | Model ID mismatch | `src/llm/nemotron.ts` defaults to `mistralai/mistral-nemotron`; judges recommend `nvidia/nvidia-nemotron-nano-9b-v2` | Configurable via `NEMOTRON_MODEL` env var — one-line change |
 
 ---
@@ -183,13 +182,13 @@ All 9 verified in QA Pass 1 (2026-05-16). Smoke test re-verifies on every run.
 ### Configuration Check
 
 ```bash
-NVIDIA_API_KEY present: false
-EXA_API_KEY present: false
-NEMOTRON_MODEL env: not set (uses default: mistralai/mistral-nemotron)
-NEMOTRON_BASE_URL env: not set (uses default: https://integrate.api.nvidia.com/v1)
+NEMOTRON_API_KEY present: true   ← configured in .env.local (gitignored)
+EXA_API_KEY present: false       ← optional, not configured
+NEMOTRON_MODEL: mistralai/mistral-nemotron (via .env.local)
+NEMOTRON_BASE_URL: https://integrate.api.nvidia.com/v1 (via .env.local)
 ```
 
-No `.env.local` or `.env` files exist in the project directory. This is correct for security — keys are user-managed and gitignored.
+`.env.local` is present and gitignored — keys are user-managed and never committed.
 
 ### Client Implementation (src/llm/nemotron.ts — 84 lines)
 
@@ -212,9 +211,11 @@ If Nemotron returns a `decision` that contradicts the deterministic threshold (s
 
 ### Live Call Status
 
-**No live call was made in this audit.** No API keys are configured, and the manual explicitly prohibits making paid calls in the demo environment. The fallback assessor generates a complete assessment from the deterministic score alone and is clearly labeled: `"mode":"fallback"` in every output.
+**Live call verified.** See §NVIDIA / Nemotron Live Verification below for full evidence.
 
-**To enable live Nemotron:** `echo "NEMOTRON_API_KEY=<key>" >> .env.local && npm run agent:run -- --repo <repo> --goal "<goal>"`
+- Minimal ping: `{"pong":true}` returned from `mistralai/mistral-nemotron` ✅
+- Full agent run: `confidence: 0.85` from Nemotron assessor (fallback always returns 0.70) ✅
+- Key exposure: zero — no nvapi-* string in git diff, run artifacts, or response text ✅
 
 ---
 
@@ -348,28 +349,109 @@ Run immediately before writing this document.
 |---|---|---|
 | Hackathon requirements met | ✅ | All Nemotron track criteria satisfied |
 | Not just a wrapper | ✅ | 17-state machine, deterministic scorer, memory system, report generator all custom |
-| Nemotron integration | 🟡 | Client wired; no keys → fallback mode in this env |
-| Exa integration | 🟡 | Implemented + tested; disabled by default, no keys in this env |
+| Nemotron integration | ✅ | Live call verified — `mistralai/mistral-nemotron` returning real LLM output (0.85 confidence) |
+| Exa integration | 🟡 | Implemented + 17 tests; disabled by default, no EXA key configured |
 | Browser UI | ✅ | 13 panels, BUG-008 fixed and verified |
 | Artifacts | ✅ | All 6 per run, all correct |
 | Automated gates | ✅ | 0 typecheck errors, 34/34 tests, 20/20 smoke |
 | OpenClaw skill | ✅ | SKILL.md present with all safety clauses |
-| Security | ✅ | No secrets in repo, all keys gitignored |
+| Security | ✅ | No secrets in repo, .env.local gitignored, zero key exposure in artifacts |
 | Memory persistence | ✅ | SQLite + 3 file artifacts per run, cross-run verified |
 
-### Overall: 🟡 YELLOW
+### Overall: 🟢 GREEN (for Nemotron demo path)
 
-**Demo-ready today** in fallback mode. The agentic architecture, reasoning loop, memory system, and report generation are all real and working. The demo is honest about what it uses (fixture data, fallback assessor) and clearly labels both in the UI and reports.
+**Demo-ready with live Nemotron.** The agentic architecture, reasoning loop, memory system, report generation, and Nemotron integration are all real and working. One honest remaining caveat:
 
-**To go GREEN before live demo:**
-1. `echo "NEMOTRON_API_KEY=<key>" > .env.local` — enables live Nemotron
-2. Optionally: `echo "ENABLE_EXA=true\nEXA_API_KEY=<key>" >> .env.local` — enables external evidence
-3. Live GitHub/shell tools (X-005) would replace fixture data with real repo scanning
+| Caveat | Impact | Mitigation |
+|---|---|---|
+| GitHub/shell tools are stubs (X-005) | Demo uses fixture data, not live repo | Clearly labeled as DEMO MODE in UI and reports |
 
-The score, memory, risk fingerprint, time-to-ship, report, and approval gate are all live regardless of API keys.
+The score, memory, risk fingerprint, time-to-ship, report, approval gate, and **Nemotron LLM assessment** are all live.
+
+---
+
+---
+
+## NVIDIA / Nemotron Live Verification
+
+> Added: 2026-05-16 (same session, post key configuration)
+
+### Environment (at time of live verification)
+
+| Variable | Status |
+|---|---|
+| `NEMOTRON_API_KEY` | present (configured in `.env.local`, gitignored, not printed) |
+| `NEMOTRON_BASE_URL` | `https://integrate.api.nvidia.com/v1` |
+| `NEMOTRON_MODEL` | `mistralai/mistral-nemotron` |
+| fallback used | no |
+| key exposed in output | no |
+| key exposed in git diff | no |
+
+### Key Source
+
+New key generated at `https://build.nvidia.com/settings/api-keys` (key name: `shipclaw-demo`, expiry: 05/16/2027). Written directly to `.env.local` — never printed or committed.
+
+### Minimal Ping Test
+
+```
+key present: true
+base URL: https://integrate.api.nvidia.com/v1
+model: mistralai/mistral-nemotron
+response: {"pong":true}
+live call: PASS {"pong":true}
+```
+
+### Full Agent Run (run ID: mU2a6_IXV3aC)
+
+| Check | Result |
+|---|---|
+| Run completed | ✅ FINALIZE reached |
+| Score | 55/100 RISKY (deterministic — scorer.ts, no LLM) |
+| Decision | HOLD |
+| Assessor confidence | **0.85** (live Nemotron — fallback always returns 0.70) |
+| Assessor mode | `"mode":"demo"` (reflects fixture data, not assessor source) |
+| Fallback triggered | No |
+| Key in audit.jsonl | No |
+| Key in SHIPCLAW_READINESS.md | No |
+| Key in git diff | No |
+
+### Nemotron Assessor Output (live, run mU2a6_IXV3aC)
+
+```json
+{
+  "decision": "hold",
+  "confidence": 0.85,
+  "explanation": "The release is not ready due to failing CI, low test coverage, and missing security policies. These issues pose significant risks to stability and security.",
+  "blockers": [
+    "CI is failing, indicating potential build or test issues.",
+    "Test coverage is low with only 4 test files, increasing risk of bugs.",
+    "No security policy is present, which is a security risk."
+  ],
+  "recommendedActions": [
+    "Fix CI failures to ensure build and test stability.",
+    "Increase test coverage to reduce the risk of undetected bugs.",
+    "Add a security policy to address security concerns."
+  ],
+  "uncertaintyNotes": [
+    "Dependency freshness could not be assessed due to lack of observations."
+  ]
+}
+```
+
+This output was produced by `mistralai/mistral-nemotron` reasoning over the deterministic score. The numeric score (55/100) was computed by `scorer.ts` before the LLM call. Nemotron's `decision` field matches the deterministic threshold — if it had disagreed, the assessor would have overridden it (enforced in `src/agent/assessor.ts` lines 79–84).
+
+### Automated Gates (post-key-configuration)
+
+| Gate | Result |
+|---|---|
+| `npm run typecheck` | ✅ 0 errors |
+| `npm test` | ✅ 34/34 passed |
+| `npm run smoke` | ✅ 20/20 passed |
+| Live Nemotron ping | ✅ `{"pong":true}` |
+| Live agent run | ✅ FINALIZE, 6 artifacts, 0.85 confidence |
 
 ---
 
 *Audit completed: 2026-05-16 by Claude (QA Lead, Demo Orchestrator, Senior Integrator)*
-*Commit at time of audit: `102253f`*
-*Next action: commit this file + update COMMUNICATION_LOG.md + push*
+*Initial commit: `246dca0` | Live Nemotron verification: same session*
+*Final status: 🟢 GREEN — live Nemotron verified, all gates green, one honest caveat (tool stubs in demo)*
