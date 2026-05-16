@@ -1,8 +1,8 @@
 # ShipClaw — Demo QA Tracker
 
 > Owner: Claude (QA Lead, Demo Orchestrator, Senior Integrator)
-> Last updated: 2026-05-16 — QA Pass 3 CODEX PATCH COMPLETE
-> **Overall Demo Status: ✅ PASS 3 PATCHED — UI mounts, demo run browser-swept, all automated gates green**
+> Last updated: 2026-05-16 — QA Pass 3 COMPLETE — BUG-008 independently verified by Claude
+> **Overall Demo Status: ✅ ALL GATES GREEN — BUG-008 UI fix verified, typecheck + 34 tests + 20 smoke + build + browser all pass**
 
 ---
 
@@ -17,7 +17,7 @@
 | Claude-owned bugs fixed | ✅ 4 fixed | ✅ 3 more fixed (BUG-005, 006, 007) |
 | Codex-assigned issues | ✅ CODEX-001–003 fixed | ✅ X-002 + X-006 merged |
 | Exa integration | ⬜ not yet | ✅ Complete — 17 tests |
-| UI manual sweep | ⬜ browser needed | ✅ partial Codex browser sweep — BUG-008 fixed |
+| UI manual sweep | ⬜ browser needed | ✅ Codex sweep + Claude independent browser verification |
 | OpenClaw skill | ✅ present | ✅ Reconstruct/CoT clauses added |
 | Memory across runs | ✅ SQLite-backed | ✅ re-verified — persisting |
 
@@ -142,7 +142,7 @@ Owner: Codex
 Status: fixed
 Files changed:
 - `src/ui/index.html`
-Validation:
+Validation (Codex — partial, network-bound URL):
 - `curl -i http://<vite-host>:5173/main.tsx`
 - Browser sweep: loaded patch-clone Vite URL, verified dashboard mounted, submitted demo run, and confirmed score table, risk fingerprint, time-to-ship, Live Report Preview markdown tables, memory, audit log, and External Evidence `Skipped` panel rendered.
 - `npm run typecheck`
@@ -155,6 +155,25 @@ Commit:
 - 76d9b29
 Notes:
 - Local `localhost:5173` was occupied by an older `/Users/meetbhadra/Documents/Codex/shipclaw` Vite process during QA, so Codex verified the active patch clone via its network-bound Vite URL.
+
+## BUG-008 Independent Verification (Claude — 2026-05-16)
+Owner: Claude (QA Lead)
+Status: ✅ VERIFIED — independent confirmation on localhost:5173 from `/Users/meetbhadra/shipclaw`
+Method: Killed stale Codex Vite PID, started fresh dev server (backend :8787 + Vite :5173) from fixed codebase. Used Chrome browser automation (Claude-in-Chrome MCP).
+Evidence:
+- Script URL in DOM: `http://localhost:5173/main.tsx` ✅ (not broken `/src/ui/main.tsx`)
+- React root mounted (3 child elements) ✅
+- No console errors ✅
+- `npm run typecheck`: 0 errors ✅
+- `npm test`: 34/34 ✅
+- `npm run smoke`: 20/20 ✅
+- `npm run build`: 284 modules, dist/ui/index.html has hashed asset ref (no raw .tsx) ✅
+- 12 panels rendered: Goal, Plan, Readiness Score, Decision, Agent Activity, Risk Fingerprint, Time-to-Ship, Findings, **Live Report Preview** ✅, Memory, Audit Log, External Evidence
+- Live Report Preview: react-markdown active, "Readiness Report" / "Verdict" visible ✅
+- Audit Log panel: run_created + auto_approved entries visible ✅
+- External Evidence panel: "skipped" text visible ✅
+- Memory panel: meta: keys visible ✅
+- Score badge: 55/100 ✅  Decision badge: HOLD ✅
 
 ---
 
@@ -235,5 +254,8 @@ Run `npm run dev` → http://localhost:5173
 ---
 
 *QA Pass 2 completed: 2026-05-16 by Claude (QA Lead, Demo Orchestrator, Senior Integrator)*
-*Bugs fixed this pass: BUG-005 (SKILL.md), BUG-006 (Verdict pollution), BUG-007 (audit cascade)*
-*All automated gates: ✅ typecheck + 34 tests + 20 smoke checks*
+*Bugs fixed pass 2: BUG-005 (SKILL.md), BUG-006 (Verdict pollution), BUG-007 (audit cascade)*
+
+*QA Pass 3 completed: 2026-05-16 by Claude (QA Lead)*
+*BUG-008 independently verified: Vite entrypoint fix confirmed via Chrome browser automation*
+*Final gates: ✅ typecheck (0 errors) · ✅ 34/34 tests · ✅ 20/20 smoke · ✅ build (284 modules) · ✅ browser (12 panels, Live Preview, no errors)*

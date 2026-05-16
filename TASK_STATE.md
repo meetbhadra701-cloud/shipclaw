@@ -64,6 +64,7 @@
 | OpenClaw SKILL.md | ✅ all 6 safety clauses present |
 | UI manual sweep | ⬜ requires browser |
 | BUG-008 Vite UI entrypoint | ✅ fixed — commit 76d9b29 |
+| BUG-008 Claude independent verify | ✅ confirmed — browser + build + all gates green |
 
 ## QA Pass 1 (Claude QA Lead — 2026-05-16)
 
@@ -91,7 +92,7 @@
 | `npm test` | ✅ 6/6 passed (scorer.test.ts — Codex to expand in X-006) |
 | `npm run smoke` | ✅ 20/20 checks passed |
 | Demo mode agent run | ✅ runs to FINALIZE, generates all artifacts |
-| `npm run dev` — UI sweep | ⬜ pending manual sweep |
+| `npm run dev` — UI sweep | ✅ browser-verified — 12 panels, Live Preview, no errors |
 | Fallback banner visible | ✅ mode-banner--fallback CSS + JSX |
 | Deterministic score | ✅ computed at CALCULATE_SCORE before Nemotron |
 | Evidence table | ✅ in report section 13 (empty when Exa disabled) |
