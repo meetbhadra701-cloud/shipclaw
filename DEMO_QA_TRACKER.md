@@ -1,8 +1,8 @@
 # ShipClaw — Demo QA Tracker
 
 > Owner: Claude (QA Lead, Demo Orchestrator, Senior Integrator)
-> Last updated: 2026-05-16 — Live Nemotron verified — status upgraded to GREEN
-> **Overall Demo Status: 🟢 GREEN — Live Nemotron verified (`mistralai/mistral-nemotron`, 0.85 confidence). All automated gates green. One honest caveat: tool stubs in demo mode (fixture data). See FINAL_DEMO_PROOF.md for full evidence.**
+> Last updated: 2026-05-16 — UI Redesign complete — Command Center Polish applied
+> **Overall Demo Status: GREEN — Live Nemotron verified (`mistralai/mistral-nemotron`, 0.85 confidence). All automated gates green. UI redesign (Phase 1–7) complete: emoji-free, light/dark theme, glass hero, hex loading overlay. UI_REDESIGN_QA.md written. See FINAL_DEMO_PROOF.md for full evidence.**
 
 ---
 

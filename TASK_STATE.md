@@ -45,6 +45,30 @@
 | C-EXA | Exa integration | ✅ complete | yes | Full impl: searchExternalDocs, assessmentNeedsExternalEvidence, buildExaQueries. 17 tests. UI panel with WCAG AA. |
 | C-NEMO | NemoClaw/GX10 story | ✅ complete | OpenClaw SKILL.md present with NemoClaw safety alignment. Live Nemotron verified 2026-05-16. |
 | C-UI | UI Polish — dark command center | ✅ complete | yes | styles.css complete rewrite (870 lines), App.tsx complete rewrite (590 lines), hero section, glassmorphism, NVIDIA green, 13 panels verified in browser. UI_FINAL_QA.md + DEPLOYMENT_UI_NOTES.md written. |
+| C-UI2 | UI Redesign — Command Center Polish | ✅ complete | yes | Phase 1–7 complete. 22 emoji removed, SVG SC monogram, GlassHeroBackground, HexagonLoadingOverlay, ThemeToggle (light/dark), [data-theme="light"] palette, semantic status classes, panel polish, `:focus-visible` ring. QA: 11 checks, 3 viewports, 2 themes. All gates green. UI_REDESIGN_QA.md written. Commits: 39aa7b1→f343c5c |
+
+---
+
+## QA Pass 3 (Claude — 2026-05-16) — UI Redesign Complete
+
+| Check | Status |
+|---|---|
+| `npm run typecheck` | ✅ 0 errors |
+| `npm test` | ✅ 34/34 passed |
+| `npm run smoke` | ✅ 20/20 passed — HOLD 55/100 |
+| `npm run build` | ✅ CSS 28.46 kB, JS 336.81 kB |
+| Emoji removed (22 locations) | ✅ SVG SC monogram in place |
+| GlassHeroBackground | ✅ 5 iridescent panes, aria-hidden, pointer-events none |
+| HexagonLoadingOverlay | ✅ canvas 7×7, 30fps, 90s timeout, focus returns on unmount |
+| ThemeToggle | ✅ aria-pressed, dynamic aria-label, localStorage persist |
+| Light mode [data-theme="light"] | ✅ full palette, all contrast ≥4.5:1 |
+| Skip link | ✅ Tab-1 reveals, href="#main-content" |
+| Semantic status classes | ✅ status-pass/fail/warning/skipped/fallback-note |
+| Focus visible on toggle | ✅ 2px solid var(--color-focus) added |
+| Browser QA — 1920×1080 | ✅ both themes verified |
+| Browser QA — 1366×768 | ✅ pass |
+| Browser QA — 414×896 | ✅ pass |
+| No console errors | ✅ confirmed |
 
 ---
 

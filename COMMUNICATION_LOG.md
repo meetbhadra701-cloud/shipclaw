@@ -510,3 +510,39 @@ None.
 
 **Next action:**
 Push commits to remote. Project is demo-ready. All MVP gate items complete.
+
+---
+
+## QA-010 — UI Redesign "Command Center Polish" Complete (2026-05-16)
+
+**Status: COMPLETE — GREEN**
+
+**Commits:** `39aa7b1` → `576ec46` → `c2787b2` → `f343c5c`
+
+**What was done (Phases 1–7):**
+
+Phase 1 — Emoji removal: All 22 emoji glyphs replaced. SVG SC monogram (NVIDIA-green rounded square, white "SC") replaces ship emoji hero logo. FALLBACK MODE / DEMO MODE banners use middle-dot separator instead of emoji.
+
+Phase 2 — GlassHeroBackground: New `src/ui/components/GlassHeroBackground.tsx` — 5 iridescent SVG polygon panes with CSS drift keyframes (18–30s), `pointer-events: none`, `aria-hidden`, `z-index: 0` inside hero container. Pure SVG/CSS, no three.js.
+
+Phase 3 — HexagonLoadingOverlay: New `src/ui/components/HexagonLoadingOverlay.tsx` — canvas 7×7 hex grid, 30fps RAF cap, wave pulse animation, 90s safety timeout, announces via App `liveRegionRef` (no focus trap per a11y-lead ruling), returns focus to `runBtnRef` on unmount.
+
+Phase 4 — ThemeToggle: New `src/ui/components/ThemeToggle.tsx` — `aria-pressed`, dynamic `aria-label`, moon/sun inline SVG icons, localStorage persist with anti-FOUC inline script in `index.html`.
+
+Phase 5 — Semantic status system: `.status-pass`, `.status-fail`, `.status-warning`, `.status-skipped`, `.status-fallback-note` — all backed by CSS variables resolving correctly in both themes.
+
+Phase 6 — Panel polish: heading hierarchy confirmed (1×H1, 12×H2, 3×H3), `category-table` padding bumped to 10px/14px with alternating row backgrounds, inline color redundancy consolidated.
+
+Phase 7 — Browser QA: 11 checks across 3 viewports (1920×1080, 1366×768, 414×896) and 2 themes. Skip link confirmed, theme toggle accessibility verified, glass background readable, focus ring added to toggle (`:focus-visible`). Written to `UI_REDESIGN_QA.md`.
+
+**Gates:**
+- typecheck: 0 errors
+- test: 34/34
+- smoke: 20/20 — HOLD 55/100 (agent logic unchanged)
+- build: 287 modules, CSS 28.46 kB, JS 336.81 kB
+
+**Dependency / ask for Codex:**
+None.
+
+**Next action:**
+Push all commits. Project ready for demo with polished Command Center UI.
