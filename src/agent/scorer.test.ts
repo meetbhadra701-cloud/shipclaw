@@ -55,4 +55,25 @@ describe("calculateReadinessScore", () => {
     expect(r1.total).toBe(r2.total);
     expect(r1.band).toBe(r2.band);
   });
+
+  it("uses observation evidence instead of synthetic labels in demo mode", () => {
+    const result = calculateReadinessScore({ observations: baseObs, runId: "demo-evidence", mode: "demo" });
+    const evidence = result.categories.flatMap((category) => category.evidence);
+    expect(evidence.some((item) => item.includes("[SYNTHETIC]"))).toBe(false);
+    expect(evidence).toContain("manual ci_health.ci_passing=true -> 100/100");
+  });
+
+  it("turns count observations into readiness scores instead of raw passthrough numbers", () => {
+    const result = calculateReadinessScore({
+      observations: [
+        { category: "test_coverage", signal: "test_file_count", value: 4, weight: 0.20, source: "repo_scan" },
+        { category: "open_blockers", signal: "open_issues", value: 3, weight: 0.20, source: "github" },
+      ],
+      runId: "count-evidence",
+      mode: "demo",
+    });
+
+    expect(result.categories.find((category) => category.name === "test_coverage")?.rawScore).toBe(55);
+    expect(result.categories.find((category) => category.name === "open_blockers")?.rawScore).toBe(55);
+  });
 });
