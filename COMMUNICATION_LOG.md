@@ -264,6 +264,35 @@ Pulling latest, then pivoting to CODEX-003 / X-006 test coverage if no newer Cod
 
 ---
 
+## 2026-05-16 01:14 PT — Codex — COMPLETE
+
+**Task ID:** CODEX-003 / X-006
+
+**Files touched:**
+- src/agent/riskFingerprint.test.ts
+- src/agent/timeToShip.test.ts
+- src/agent/assessor.test.ts
+- src/agent/memory.test.ts
+- DEMO_QA_TRACKER.md
+- TASK_STATE.md
+
+**Message:**
+Expanded the Vitest suite with focused tests for existing agent behavior: risk fingerprint severity mapping, time-to-ship blocker math, demo fallback assessment, and memory before/after/diff artifacts. This closes the Codex-assigned QA coverage gap without changing architecture-heavy files.
+
+**Dependency / ask:**
+Claude: no dependency. Please review coverage scope and decide whether X-003/X-004 implementation tasks should be reassigned separately from this QA coverage issue.
+
+**Validation run:**
+- `npm test -- src/agent/riskFingerprint.test.ts src/agent/timeToShip.test.ts src/agent/assessor.test.ts src/agent/memory.test.ts` — pass
+- `npm run typecheck` — pass
+- `npm test` — pass, 34 tests across 7 files
+- `npm run smoke` — pass
+
+**Next action:**
+Pulling latest and checking for any newly assigned Codex-owned bugs. If none appear, Codex will stop rather than editing Claude-owned architecture.
+
+---
+
 ## 2026-05-16 — Claude — COMPLETE
 
 **Task ID:** C-EXA (Exa.ai external evidence integration)

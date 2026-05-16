@@ -33,7 +33,7 @@
 | X-003 | RiskFingerprint — memory-aware implementation | 📋 todo | Stub exists. Must use memorySnapshot.items from IDb. |
 | X-004 | TimeToShip — real MINUTES_PER_* heuristic | 📋 todo | Stub exists. Use MINUTES_PER_CRITICAL, MINUTES_PER_HIGH, etc. from constants.ts |
 | X-005 | GitHub/Repo tools — real Octokit + simple-git | 📋 todo | Stubs exist in src/tools/. Demo mode reads fixtures/. |
-| X-006 | Tests — vitest suite | 🚧 in-progress | Codex claimed CODEX-003. Adding focused tests for riskFingerprint, timeToShip, assessor fallback, and memory diff behavior. |
+| X-006 | Tests — vitest suite | ✅ complete | Commit 19b503e. Added focused tests for riskFingerprint, timeToShip, assessor fallback, and memory diff behavior. |
 | X-007 | UI component internals | 📋 todo | App.tsx has everything inline. Codex may extract to src/ui/components/. |
 
 ---
@@ -62,7 +62,7 @@
 | BUG-004 1-byte jsonl | ✅ fixed |
 | CODEX-001 SqliteDb | ✅ fixed — commit 8266937 |
 | CODEX-002 real scorer evidence | ✅ fixed — commit 69b2ec7 |
-| CODEX-003 test coverage | ⚠️ open — assigned to Codex |
+| CODEX-003 test coverage | ✅ fixed — commit 19b503e |
 | UI manual sweep | ⬜ requires browser |
 
 ## Final MVP Gate checklist

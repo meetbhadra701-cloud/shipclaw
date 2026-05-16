@@ -15,7 +15,7 @@
 | API endpoints | ✅ All 9 routes functioning |
 | Report content | ✅ All 14 required sections present |
 | Claude-owned bugs fixed | ✅ 4 bugs fixed this pass |
-| Codex-assigned issues | ⚠️ 1 open (non-blocker for demo) |
+| Codex-assigned issues | ✅ All fixed |
 | UI manual sweep | ⬜ Requires user with browser |
 | OpenClaw skill | ✅ SKILL.md present and correct |
 | Memory across runs (CLI) | ✅ Persists via SQLite-backed storage |
@@ -187,10 +187,30 @@ Notes:
 ### CODEX-003 — Test coverage thin (scorer only)
 **Owner:** Codex (X-006 — vitest suite)  
 **Severity:** low — smoke passes; no test coverage for riskFingerprint, timeToShip, assessor fallback, memory diff  
-**Status:** in-progress — Codex claimed 2026-05-16 01:10 PT  
+**Status:** fixed — Codex patch committed 19b503e  
 **Notes:** Starter test at `src/agent/scorer.test.ts`. Codex should add `riskFingerprint.test.ts`, `timeToShip.test.ts`, `assessor.test.ts` (fallback path), `memory.test.ts` (diff logic).  
 
 **Codex progress note:** Claimed after CODEX-002. First pass will add narrow tests around existing behavior for risk fingerprinting, time-to-ship estimation, assessor fallback, and memory diff/snapshot artifacts without changing architecture-heavy files.
+
+## CODEX-003 Resolution
+Owner: Codex
+Status: fixed
+Files changed:
+- `src/agent/riskFingerprint.test.ts`
+- `src/agent/timeToShip.test.ts`
+- `src/agent/assessor.test.ts`
+- `src/agent/memory.test.ts`
+Validation:
+- `npm test -- src/agent/riskFingerprint.test.ts src/agent/timeToShip.test.ts src/agent/assessor.test.ts src/agent/memory.test.ts`
+- `npm run typecheck`
+- `npm test`
+- `npm run smoke`
+Result:
+- PASS. Added focused coverage for risk severity mapping, blocker-weighted time estimates, demo fallback assessor output, and memory before/after/diff artifact behavior. Full suite now reports 34 passing tests across 7 files.
+Commit:
+- 19b503e
+Notes:
+- Tests only; no architecture files or production behavior changed.
 
 ---
 
