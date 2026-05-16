@@ -121,6 +121,24 @@
 
 ---
 
+## Bugs Found — Pass 3 (Codex independent UI sweep)
+
+### BUG-008 — Patch-clone Vite UI does not mount because index.html points at wrong module path
+**Owner:** Codex
+**Severity:** high — browser sweep shows only the skip link; React dashboard never mounts on the active patch clone
+**Status:** in-progress — Codex claimed 2026-05-16 01:47 PT
+**Found by:** Codex (independent browser QA after no open Codex-assigned bugs)
+**Reproduction:**
+```bash
+npm run dev
+curl -i http://<vite-host>:5173/src/ui/main.tsx
+```
+**Expected:** Vite serves the transformed React entry module and the dashboard renders.
+**Actual:** Vite serves `index.html` for `/src/ui/main.tsx`; browser body only contains "Skip to main content" because React never loads.
+**Likely root cause:** `vite.config.ts` sets `root: "src/ui"`, but `src/ui/index.html` references `/src/ui/main.tsx` instead of `/main.tsx`.
+
+---
+
 ## Manual UI Sweep Checklist (requires user + browser)
 
 Run `npm run dev` → http://localhost:5173
