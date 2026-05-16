@@ -108,7 +108,7 @@
 ### CODEX-001 — Memory does not persist across separate CLI processes
 **Owner:** Codex (X-001 — SqliteDb)  
 **Severity:** medium — "memory across runs" feature is invisible when using CLI directly  
-**Status:** open — blocked on `better-sqlite3` Node 24 native binding failure  
+**Status:** in-progress — Codex claimed 2026-05-15 22:04 PT  
 **Reproduction:**
 ```bash
 npm run agent:run -- --demo --auto-approve-local  # run 1
@@ -119,6 +119,8 @@ npm run agent:run -- --demo --auto-approve-local  # run 2: memory_before.jsonl i
 **Workaround for demo:** Use the API server path: `POST /api/runs` via UI. Multiple runs within one server session accumulate memory correctly.  
 **Likely files:** `src/storage/db.ts` (needs `SqliteDb`), `src/server/index.ts` (needs `setDb(new SqliteDb())`)  
 **Notes:** `better-sqlite3` fails to compile on Node 24 (gyp error). Codex should try `node-sqlite3-wasm` or `@sqlite.org/sqlite-wasm` as Node 24 compatible alternatives. See `scripts/migrate.ts` for current graceful fallback.  
+
+**Codex progress note:** Claimed for patching. First pass will inspect the existing `IDb` contract, schema, server bootstrap, and Node 24 SQLite options before editing implementation files.
 
 ---
 
