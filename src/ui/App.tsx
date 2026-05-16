@@ -1,7 +1,7 @@
 /**
  * ShipClaw — React Dashboard
  * Claude-primary file. Accessibility-first. WCAG AA compliant.
- * Reviewed by accessibility-agents:accessibility-lead.
+ * Reviewed by accessibility-agents:accessibility-lead (Phase 0 + Phase 1).
  *
  * Layout:
  *  Hero — brand + system status + metrics (full-width)
@@ -9,6 +9,9 @@
  *  Main    — timeline, fingerprint, time-to-ship, findings,
  *             approval, report preview, memory, audit, exa
  *  Footer  — technical proof claims
+ *
+ * UI redesign: emoji-free, SC monogram, ThemeToggle, GlassHeroBackground,
+ * HexagonLoadingOverlay, light/dark mode, semantic status classes.
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
@@ -134,6 +137,37 @@ function HeroMetric({ label, value, valueClass }: HeroMetricProps) {
   );
 }
 
+// ── SC monogram logo ──────────────────────────────────────────────────────────
+// Replaces 🚢 emoji. aria-hidden because H1 "ShipClaw" provides the brand label.
+
+function SCMonogram() {
+  return (
+    <svg
+      width="36"
+      height="36"
+      viewBox="0 0 36 36"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+      className="hero-monogram"
+    >
+      <rect width="36" height="36" rx="8" fill="var(--accent)" />
+      <text
+        x="18"
+        y="24"
+        textAnchor="middle"
+        fill="white"
+        fontSize="14"
+        fontWeight="700"
+        fontFamily="system-ui, -apple-system, sans-serif"
+        letterSpacing="-0.3"
+      >
+        SC
+      </text>
+    </svg>
+  );
+}
+
 // ── App component ─────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -149,6 +183,7 @@ export default function App() {
   const timelineRef = useRef<HTMLUListElement | null>(null);
   const approvalRef = useRef<HTMLDivElement | null>(null);
   const liveRegionRef = useRef<HTMLDivElement | null>(null);
+  const runBtnRef = useRef<HTMLButtonElement | null>(null);
 
   // ── Live announcement helper (screen reader) ───────────────────────────────
 
@@ -415,14 +450,14 @@ export default function App() {
 
       {/* Mode banners */}
       {runState.mode === "fallback" && (
-        <div className="mode-banner mode-banner--fallback" role="note" aria-label="Warning: Fallback mode active">
-          ⚠️ SYNTHETIC FALLBACK MODE — Nemotron unavailable. Scoring remains deterministic.
+        <div className="mode-banner mode-banner--fallback" role="note" aria-label="Fallback mode active">
+          FALLBACK MODE · Nemotron unavailable. Scoring remains deterministic.
           Demo mode uses fixture data. Scoring, memory, approval gate, and report generation are real.
         </div>
       )}
       {runState.mode === "demo" && (
         <div className="mode-banner mode-banner--demo" role="note" aria-label="Demo mode active">
-          🔬 DEMO MODE — Fixture repo data in use.{" "}
+          DEMO MODE · Fixture repo data in use.{" "}
           <strong>Scoring, memory, Nemotron reasoning, approval gate, and report generation are real.</strong>
         </div>
       )}
@@ -444,7 +479,7 @@ export default function App() {
 
           {/* Brand row */}
           <div className="hero-brand">
-            <span aria-hidden="true" className="hero-logo">🚢</span>
+            <SCMonogram />
             <div className="hero-brand-text">
               {/* Single H1 for the page — replaces old app-header h1 */}
               <h1 className="hero-title">
@@ -539,9 +574,7 @@ export default function App() {
 
           {/* Panel 1: Goal form */}
           <section className="panel" aria-labelledby="panel-goal-heading">
-            <h2 id="panel-goal-heading">
-              <span aria-hidden="true">🎯</span> Goal
-            </h2>
+            <h2 id="panel-goal-heading">Goal</h2>
             <form onSubmit={handleSubmit} className="goal-form" noValidate>
               <div className="form-field">
                 <label className="form-label" htmlFor="repo-input">
@@ -603,6 +636,7 @@ export default function App() {
               )}
 
               <button
+                ref={runBtnRef}
                 type="submit"
                 className="btn btn--primary w-full"
                 disabled={isRunning || !goal.trim() || !repo.trim()}
@@ -623,9 +657,7 @@ export default function App() {
           {/* Panel 2: Plan */}
           {runState.plan && (
             <section className="panel" aria-labelledby="panel-plan-heading">
-              <h2 id="panel-plan-heading">
-                <span aria-hidden="true">📋</span> Plan
-              </h2>
+              <h2 id="panel-plan-heading">Plan</h2>
               <p className="text-sm text-muted" style={{ marginBottom: "var(--space-2)" }}>
                 {runState.plan.constraints.join(" · ")}
               </p>
@@ -648,9 +680,7 @@ export default function App() {
               aria-live="polite"
               aria-atomic="true"
             >
-              <h2 id="panel-score-heading">
-                <span aria-hidden="true">📊</span> Readiness Score
-              </h2>
+              <h2 id="panel-score-heading">Readiness Score</h2>
               <div
                 className="score-display"
                 role="img"
@@ -702,11 +732,8 @@ export default function App() {
           {/* Panel 10: Final Decision */}
           {runState.finalDecision && (
             <section className="panel" aria-labelledby="panel-decision-heading">
-              <h2 id="panel-decision-heading">
-                <span aria-hidden="true">🏁</span> Decision
-              </h2>
+              <h2 id="panel-decision-heading">Decision</h2>
               <div className={`decision-badge decision-badge--${runState.finalDecision}`}>
-                {runState.finalDecision === "ship" ? "✅" : "🔴"}{" "}
                 {runState.finalDecision.toUpperCase()}
               </div>
               {runState.assessorOutput?.explanation && (
@@ -715,8 +742,8 @@ export default function App() {
                 </p>
               )}
               {runState.assessorOutput?.mode === "fallback" && (
-                <p className="text-xs mt-2" style={{ color: "var(--color-risky)" }}>
-                  ⚠️ Assessment generated from deterministic score (Nemotron unavailable).
+                <p className="text-xs mt-2 status-fallback-note">
+                  Assessment generated from deterministic score — Nemotron unavailable.
                 </p>
               )}
             </section>
@@ -751,9 +778,7 @@ export default function App() {
           {/* Panel 3: Agent Timeline */}
           {runState.events.length > 0 && (
             <section className="panel" aria-labelledby="panel-timeline-heading">
-              <h2 id="panel-timeline-heading">
-                <span aria-hidden="true">⚡</span> Agent Activity
-              </h2>
+              <h2 id="panel-timeline-heading">Agent Timeline</h2>
               <ul
                 ref={timelineRef}
                 className="timeline"
@@ -781,9 +806,7 @@ export default function App() {
           {/* Panel 5: Release Risk Fingerprint */}
           {runState.riskFingerprint && (
             <section className="panel" aria-labelledby="panel-risk-heading">
-              <h2 id="panel-risk-heading">
-                <span aria-hidden="true">🔍</span> Release Risk Fingerprint
-              </h2>
+              <h2 id="panel-risk-heading">Release Risk Fingerprint</h2>
               <p className="text-sm text-muted" style={{ marginBottom: "var(--space-3)" }}>
                 {runState.riskFingerprint.basedOnMemory
                   ? `Memory-aware — based on ${runState.riskFingerprint.memoryGenerationCount} prior run(s)`
@@ -811,7 +834,7 @@ export default function App() {
                         </td>
                         <td>{item.signal}</td>
                         <td>{item.detail}</td>
-                        <td>{item.fromMemory ? "✅ Yes" : "—"}</td>
+                        <td>{item.fromMemory ? <span className="status-pass" aria-label="From memory">Yes</span> : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -823,9 +846,7 @@ export default function App() {
           {/* Panel 6: Time-to-Ship */}
           {runState.timeToShip && (
             <section className="panel" aria-labelledby="panel-tts-heading">
-              <h2 id="panel-tts-heading">
-                <span aria-hidden="true">⏱️</span> Time-to-Demo-Ready
-              </h2>
+              <h2 id="panel-tts-heading">Time-to-Demo-Ready</h2>
               <div
                 className="tts-display"
                 aria-label={`${runState.timeToShip.minMinutes} to ${runState.timeToShip.maxMinutes} minutes to remediate`}
@@ -852,9 +873,7 @@ export default function App() {
           {/* Panel 7: Findings — score breakdown + blockers + actions */}
           {(runState.assessorOutput || runState.score) && (
             <section className="panel" aria-labelledby="panel-findings-heading">
-              <h2 id="panel-findings-heading">
-                <span aria-hidden="true">🚧</span> Findings &amp; Recommended Actions
-              </h2>
+              <h2 id="panel-findings-heading">Findings</h2>
 
               {/* Score breakdown table */}
               {runState.score && runState.score.categories.length > 0 && (
@@ -879,8 +898,8 @@ export default function App() {
                           <td>{cat.weightedScore.toFixed(1)}</td>
                           <td>
                             {cat.pass
-                              ? <span className="pass-icon" aria-label="Pass">✅</span>
-                              : <span className="fail-icon" aria-label="Fail">❌</span>}
+                              ? <span className="status-pass" aria-label="Pass">Pass</span>
+                              : <span className="status-fail" aria-label="Fail">Fail</span>}
                           </td>
                         </tr>
                       ))}
@@ -893,8 +912,8 @@ export default function App() {
                         <td>{runState.score.total}</td>
                         <td>
                           {runState.score.total >= 71
-                            ? <span className="pass-icon" aria-label="Overall pass">✅</span>
-                            : <span className="fail-icon" aria-label="Overall fail">❌</span>}
+                            ? <span className="status-pass" aria-label="Overall pass">Pass</span>
+                            : <span className="status-fail" aria-label="Overall fail">Fail</span>}
                         </td>
                       </tr>
                     </tfoot>
@@ -944,9 +963,7 @@ export default function App() {
               ref={approvalRef}
               aria-live="assertive"
             >
-              <h2 id="panel-approval-heading">
-                <span aria-hidden="true">🔐</span> Approval Required
-              </h2>
+              <h2 id="panel-approval-heading">Approval Required</h2>
               <p style={{ marginTop: "var(--space-2)" }}>
                 <strong>Risk level:</strong>{" "}
                 <span className={`risk-severity risk-severity--${runState.approval.riskLevel}`}>
@@ -983,9 +1000,7 @@ export default function App() {
           >
             <div className="report-panel-header">
               <div className="report-panel-title-row">
-                <h2 id="panel-report-heading">
-                  <span aria-hidden="true">📄</span> Live Report Preview
-                </h2>
+                <h2 id="panel-report-heading">Live Report Preview</h2>
                 <span className="report-file-path" aria-hidden="true">SHIPCLAW_READINESS.md</span>
                 {isComplete && (
                   <span className="tag tag--live">Generated</span>
@@ -1001,7 +1016,7 @@ export default function App() {
                     : "Copy report to clipboard"
                   }
                 >
-                  {copyState === "copied" ? "✓ Copied" : copyState === "failed" ? "✗ Failed" : "Copy"}
+                  {copyState === "copied" ? "Copied" : copyState === "failed" ? "Failed" : "Copy"}
                 </button>
               )}
             </div>
@@ -1041,9 +1056,7 @@ export default function App() {
           {/* Panel 11: Cross-Run Memory */}
           {runState.memory.length > 0 && (
             <section className="panel" aria-labelledby="panel-memory-heading">
-              <h2 id="panel-memory-heading">
-                <span aria-hidden="true">🧠</span> Cross-Run Memory
-              </h2>
+              <h2 id="panel-memory-heading">Cross-Run Memory</h2>
               <p className="text-xs text-muted" style={{ marginBottom: "var(--space-3)" }}>
                 Persistent across runs via SQLite. Captured before and after each run.
               </p>
@@ -1061,9 +1074,7 @@ export default function App() {
           {/* Panel 12: Audit Log */}
           {runState.auditLog.length > 0 && (
             <section className="panel" aria-labelledby="panel-audit-heading">
-              <h2 id="panel-audit-heading">
-                <span aria-hidden="true">📋</span> Audit Log
-              </h2>
+              <h2 id="panel-audit-heading">Audit Log</h2>
               <div className="audit-list" role="log" aria-label="Audit log entries" aria-live="off">
                 {runState.auditLog.map((entry, i) => (
                   <div key={i} className="audit-item">
@@ -1079,9 +1090,7 @@ export default function App() {
           {/* Panel 13: External Evidence / Exa */}
           {runState.status !== "idle" && runState.exaStatus !== null && (
             <section className="panel" aria-labelledby="panel-evidence-heading">
-              <h2 id="panel-evidence-heading">
-                <span aria-hidden="true">🌐</span> External Evidence
-              </h2>
+              <h2 id="panel-evidence-heading">External Evidence</h2>
 
               {/* Status label — text conveys state, not color alone (WCAG 1.4.1) */}
               <p
