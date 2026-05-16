@@ -11,6 +11,17 @@ import { getDb } from "../storage/db.js";
 export function setupRoutes(app: Express): void {
   const db = getDb();
 
+  // ── GET /api/health ────────────────────────────────────────────────────────
+  app.get("/api/health", (_req: Request, res: Response) => {
+    res.json({
+      status: "ok",
+      service: "shipclaw",
+      timestamp: new Date().toISOString(),
+      mode: process.env["DEMO_MODE"] === "true" ? "demo" : "live",
+      nemotron: process.env["NEMOTRON_API_KEY"] ? "configured" : "fallback",
+    });
+  });
+
   // ── POST /api/runs ─────────────────────────────────────────────────────────
   app.post("/api/runs", async (req: Request, res: Response) => {
     const { goal, repo, demo, autoApproveLocal } = req.body as {

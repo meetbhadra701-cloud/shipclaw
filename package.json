@@ -4,6 +4,7 @@
   "description": "Bounded autonomous release-readiness agent — ShipClaw hackathon MVP",
   "type": "module",
   "scripts": {
+    "start": "node node_modules/.bin/tsx src/server/index.ts",
     "dev": "concurrently \"npm run server\" \"vite --host 0.0.0.0\"",
     "server": "node node_modules/tsx/dist/cli.mjs src/server/index.ts",
     "agent:run": "node node_modules/tsx/dist/cli.mjs src/agent/run.ts",
@@ -26,6 +27,7 @@
     "react-markdown": "^9.0.1",
     "remark-gfm": "^4.0.0",
     "simple-git": "^3.24.0",
+    "tsx": "^4.15.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -38,7 +40,6 @@
     "concurrently": "^8.2.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tsx": "^4.15.1",
     "typescript": "^5.4.5",
     "vite": "^5.3.1",
     "vitest": "^1.6.0"
