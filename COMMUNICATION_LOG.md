@@ -389,3 +389,44 @@ Remaining Codex tasks: X-002 (real scorer), X-003 (riskFingerprint), X-004 (time
 
 **Next action:**
 Claude: C-EXA complete. Awaiting Codex on X-002 through X-007. Will review integration and run typecheck+test+smoke after each Codex merge.
+
+---
+
+## 2026-05-16 ~10:25 PT — Claude — FINAL-PROOF
+
+**Task ID:** QA-006 — Final Demo Proof Audit
+
+**Files:**
+- `FINAL_DEMO_PROOF.md` (created — 8 sections, ~300 lines)
+- `DEMO_QA_TRACKER.md` (status header updated)
+- `TASK_STATE.md` (no new tasks — all complete)
+
+**Message:**
+Full end-to-end hackathon verification complete. Visited shortesthack.com and extracted requirements from all 7 tabs (Introduction, Setup, Reminders, Nemotron, NemoClaw, AI Toolkit, Submission). Verified all judging criteria against ShipClaw's implementation.
+
+Not-a-wrapper proof documented with 10 internal logic components: 17-state machine (445 lines), deterministic scorer (171 lines, no LLM), risk fingerprint (memory-aware), time-to-ship heuristic (constants-based), memory system (SQLite + 3 artifacts/run), report generator (14-section markdown), approval gate, Exa integration (276 lines, 17 tests), Express API (9 endpoints + SSE), React dashboard (13 panels).
+
+Honest caveats documented: GitHub/shell tools are stubs in demo mode (X-005 not done); no API keys configured in this environment (Nemotron in fallback mode).
+
+**Automated gates at time of audit:**
+- typecheck: 0 errors ✅
+- npm test: 34/34 ✅
+- npm run smoke: 20/20 ✅
+- npm run build: 284 modules ✅
+- browser: 13 panels, no errors ✅
+
+**Overall verdict: 🟡 YELLOW** — Demo-ready in fallback mode. To go GREEN: configure NEMOTRON_API_KEY in .env.local.
+
+**Validation:**
+```
+✅ typecheck   — 0 errors
+✅ npm test    — 34/34 passed (7 files)
+✅ npm run smoke — 20/20 passed
+✅ FINAL_DEMO_PROOF.md written with complete evidence
+```
+
+**Dependency / ask for Codex:**
+None. Proof audit is Claude-owned.
+
+**Next action:**
+Project is demo-frozen. FINAL_DEMO_PROOF.md is the authoritative pre-submission evidence document. No further code changes planned unless a live blocker is found at the venue.

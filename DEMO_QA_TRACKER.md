@@ -1,8 +1,8 @@
 # ShipClaw — Demo QA Tracker
 
 > Owner: Claude (QA Lead, Demo Orchestrator, Senior Integrator)
-> Last updated: 2026-05-16 — QA Pass 3 COMPLETE — BUG-008 independently verified by Claude
-> **Overall Demo Status: ✅ ALL GATES GREEN — BUG-008 UI fix verified, typecheck + 34 tests + 20 smoke + build + browser all pass**
+> Last updated: 2026-05-16 — Final Demo Proof Audit COMPLETE
+> **Overall Demo Status: 🟡 YELLOW — Demo-ready in fallback mode. All gates green. No API keys configured → Nemotron fallback. Tool stubs honest in demo. See FINAL_DEMO_PROOF.md for full evidence.**
 
 ---
 
