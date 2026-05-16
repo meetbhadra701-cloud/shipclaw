@@ -187,8 +187,10 @@ Notes:
 ### CODEX-003 — Test coverage thin (scorer only)
 **Owner:** Codex (X-006 — vitest suite)  
 **Severity:** low — smoke passes; no test coverage for riskFingerprint, timeToShip, assessor fallback, memory diff  
-**Status:** open  
+**Status:** in-progress — Codex claimed 2026-05-16 01:10 PT  
 **Notes:** Starter test at `src/agent/scorer.test.ts`. Codex should add `riskFingerprint.test.ts`, `timeToShip.test.ts`, `assessor.test.ts` (fallback path), `memory.test.ts` (diff logic).  
+
+**Codex progress note:** Claimed after CODEX-002. First pass will add narrow tests around existing behavior for risk fingerprinting, time-to-ship estimation, assessor fallback, and memory diff/snapshot artifacts without changing architecture-heavy files.
 
 ---
 
