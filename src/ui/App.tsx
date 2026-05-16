@@ -16,6 +16,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { GlassHeroBackground } from "./components/GlassHeroBackground.js";
+import { HexagonLoadingOverlay } from "./components/HexagonLoadingOverlay.js";
+import { ThemeToggle } from "./components/ThemeToggle.js";
 import type {
   AgentEvent,
   ReadinessScore,
@@ -462,8 +465,17 @@ export default function App() {
         </div>
       )}
 
+      {/* Hexagon loading overlay — shown while agent is running */}
+      <HexagonLoadingOverlay
+        visible={isRunning}
+        onAnnounce={announce}
+        runButtonRef={runBtnRef}
+      />
+
       {/* ── Hero Section ──────────────────────────────────────────────────── */}
       <header className="hero-section">
+        {/* Glass hero background — decorative SVG panes, aria-hidden, z-index:-1 */}
+        <GlassHeroBackground />
         {/* Optional hero video background — CSS fallback gradient used when file absent */}
         <video
           className="hero-video-bg"
@@ -477,7 +489,7 @@ export default function App() {
         />
         <div className="hero-inner">
 
-          {/* Brand row */}
+          {/* Brand row — ThemeToggle sits in top-right corner via flex + ml-auto */}
           <div className="hero-brand">
             <SCMonogram />
             <div className="hero-brand-text">
@@ -487,6 +499,9 @@ export default function App() {
               </h1>
               <p className="hero-subtitle">Autonomous Release Readiness Agent</p>
             </div>
+
+            {/* Theme toggle — top-right of brand row */}
+            <ThemeToggle />
 
             {/* Capability badges — ul/li list (accessibility-lead: not headings) */}
             <ul
