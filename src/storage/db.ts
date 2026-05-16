@@ -255,9 +255,40 @@ export class SqliteDb implements IDb {
   }
 
   updateRun(id: string, patch: Partial<Run>): void {
-    const existing = this.getRun(id);
+    // BUG-007 FIX: do NOT call createRun() here.
+    // createRun() uses INSERT OR REPLACE which is DELETE+INSERT under the hood.
+    // The DELETE triggers ON DELETE CASCADE, wiping audit_logs, events, etc.
+    // Instead, use a targeted SQL UPDATE that preserves child rows.
+    const existing = this.runCache.get(id) ?? this.getRun(id);
     if (!existing) return;
-    this.createRun({ ...existing, ...patch });
+    const merged = { ...existing, ...patch };
+    this.runCache.set(id, merged);
+    this.db.prepare(
+      `UPDATE runs SET
+         status = ?,
+         readiness_score = ?,
+         score_band = ?,
+         time_to_ship_min = ?,
+         time_to_ship_max = ?,
+         final_decision = ?,
+         confidence = ?,
+         artifact_dir = ?,
+         error_message = ?,
+         finished_at = ?
+       WHERE id = ?`
+    ).run(
+      merged.status,
+      merged.readinessScore?.total ?? null,
+      merged.readinessScore?.band ?? null,
+      merged.timeToShip?.minMinutes ?? null,
+      merged.timeToShip?.maxMinutes ?? null,
+      merged.finalDecision ?? null,
+      merged.assessorOutput?.confidence ?? null,
+      merged.artifactDir ?? null,
+      merged.errorMessage ?? null,
+      merged.finishedAt ?? null,
+      id
+    );
   }
 
   getRun(id: string): Run | undefined {

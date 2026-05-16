@@ -8,7 +8,6 @@
  *            blockers, recommendedActions, uncertaintyNotes.
  */
 import type { ReadinessScore, RiskFingerprint, TimeToShipEstimate, ExternalEvidence } from "../shared/types.js";
-import { FALLBACK_BANNER } from "../shared/constants.js";
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
 
@@ -134,13 +133,15 @@ export function buildFallbackExplanation(
 ): string {
   const isShip = score.total >= 71;
   const failingCats = score.categories.filter((c) => !c.pass);
+  // NOTE: Do NOT prepend FALLBACK_BANNER here. The banner is already rendered
+  // in the report header and footer. Including it in the explanation pollutes
+  // the Verdict section of SHIPCLAW_READINESS.md (BUG-006).
   return (
-    `${FALLBACK_BANNER}\n\n` +
     `Goal: ${goal}\n` +
-    `Score: ${score.total}/100 (${score.band})\n` +
-    `Decision: ${isShip ? "ship" : "hold"} (threshold: 71)\n` +
+    `Score: ${score.total}/100 (${score.band}) — assessed in fallback mode (Nemotron unavailable).\n` +
+    `Decision: ${isShip ? "SHIP" : "HOLD"} (deterministic threshold: 71/100).\n` +
     (failingCats.length
-      ? `Failing categories: ${failingCats.map((c) => c.name).join(", ")}`
-      : "All categories passing.")
+      ? `Failing categories: ${failingCats.map((c) => c.name).join(", ")}. Address these before release.`
+      : "All score categories passing. Review risk fingerprint before shipping.")
   );
 }

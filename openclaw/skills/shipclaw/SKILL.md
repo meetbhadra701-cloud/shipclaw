@@ -92,3 +92,5 @@ The dashboard server runs on `:8787`:
 - Secrets never written to repos, logs, reports, or commits
 - All risky actions gated on `/api/approvals/:id/approve`
 - Synthetic data clearly labeled in UI and reports
+- **Do not use Reconstruct** — ShipClaw has no Reconstruct dependency and makes no Reconstruct API calls
+- **Do not expose hidden chain-of-thought** — all reasoning steps are either in the audit trail or not shared externally
