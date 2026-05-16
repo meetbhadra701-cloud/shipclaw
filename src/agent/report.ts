@@ -20,7 +20,7 @@ import type {
   AssessorOutput,
   ExternalEvidence,
 } from "../shared/types.js";
-import { FALLBACK_BANNER, DEMO_BANNER } from "../shared/constants.js";
+import { FALLBACK_BANNER, DEMO_BANNER, EXA_ENABLED } from "../shared/constants.js";
 
 // ─── Report Input ─────────────────────────────────────────────────────────────
 
@@ -211,19 +211,35 @@ function buildReadinessMd(input: ReportInput): string {
   ].join("\n");
 
   // Section 13: External Evidence Status
+  const exaApiKey = !!process.env["EXA_API_KEY"];
+  const exaStatusLabel = !EXA_ENABLED
+    ? "skipped — set `ENABLE_EXA=true` to enable"
+    : !exaApiKey
+    ? "skipped — `EXA_API_KEY` not configured"
+    : evidence.length > 0
+    ? `live — ${evidence.length} result(s) retrieved from Exa`
+    : "skipped — no uncertainty signals detected";
+
   const evidenceSection = [
-    `## 🌐 External Evidence Status`,
+    `## 🌐 External Evidence Check`,
+    ``,
+    `**Status:** ${exaStatusLabel}`,
     ``,
     evidence.length > 0
       ? [
-          `| Source | Query | Snippet | Relevance |`,
-          `|---|---|---|---|`,
+          `> All results are labeled as External Evidence. Exa does not override direct repo evidence.`,
+          `> If Exa disagrees with repo findings, both are shown and uncertainty is noted.`,
+          ``,
+          `| Source | Title | Query | Excerpt | Relevance | Risk Signal |`,
+          `|---|---|---|---|---|---|`,
           ...evidence.map(
             (e) =>
-              `| ${e.source} | ${e.query.slice(0, 40)} | ${e.snippet.slice(0, 60)}… | ${(e.relevanceScore * 100).toFixed(0)}% |`
+              `| External Evidence (${e.source}) | ${(e.sourceTitle ?? e.source).slice(0, 40)} | ${e.query.slice(0, 35)}… | ${e.snippet.slice(0, 70)}… | ${e.relevance ?? ((e.relevanceScore * 100).toFixed(0) + "%")} | ${e.riskSignal ?? "neutral"} |`
           ),
         ].join("\n")
-      : "_Exa external evidence disabled or no results._",
+      : !EXA_ENABLED
+      ? `_External evidence is disabled. No Exa searches were performed._\n\n_To enable: set \`ENABLE_EXA=true\` and \`EXA_API_KEY\` in \`.env.local\`._`
+      : `_No external evidence retrieved._`,
     ``,
   ].join("\n");
 

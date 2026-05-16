@@ -30,7 +30,7 @@ import { assess } from "./assessor.js";
 import { getRepoBundle } from "../tools/github.js";
 import { scanImportantFiles } from "../tools/repo.js";
 import { runSafeCommand } from "../tools/shell.js";
-import { searchExternalEvidence } from "../tools/exa.js";
+import { searchExternalEvidence, assessmentNeedsExternalEvidence, buildExaQueries } from "../tools/exa.js";
 import { generateReport } from "./report.js";
 import { EXA_ENABLED, DEMO_BANNER, FALLBACK_BANNER } from "../shared/constants.js";
 
@@ -264,17 +264,31 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
       // ── OPTIONAL_EXA_EXTERNAL_EVIDENCE ────────────────────────────────────
       case "OPTIONAL_EXA_EXTERNAL_EVIDENCE": {
         let evidenceCount = 0;
-        if (EXA_ENABLED) {
-          const queries = riskFingerprint.items
+        const exaApiKey = process.env["EXA_API_KEY"];
+        const needsExternal = EXA_ENABLED && !!exaApiKey && assessmentNeedsExternalEvidence(observations, score);
+
+        if (needsExternal) {
+          // Prefer queries derived from score/observations over raw risk signals
+          // (more targeted, less noisy than raw "signal release risk repo")
+          const smartQueries = buildExaQueries({ repo: config.repo, score, observations });
+          // Fallback to risk-fingerprint signals if no smart queries built
+          const fallbackQueries = riskFingerprint.items
             .filter((i) => i.severity === "critical" || i.severity === "high")
             .slice(0, 3)
-            .map((i) => `${i.signal} release risk ${config.repo}`);
+            .map((i) => `${i.signal} release risk`);
+          const queries = smartQueries.length > 0 ? smartQueries : fallbackQueries;
+
           const evidence = await searchExternalEvidence(queries, runId);
           for (const e of evidence) {
             db.cacheEvidence({ ...e, runId });
             evidenceCount++;
           }
+        } else if (EXA_ENABLED && !exaApiKey) {
+          db.audit(runId, "system", "exa_skipped", "EXA_API_KEY not configured");
+        } else if (EXA_ENABLED && exaApiKey && !assessmentNeedsExternalEvidence(observations, score)) {
+          db.audit(runId, "system", "exa_skipped", "no uncertainty signals detected");
         }
+
         emit({ type: "external_evidence_status", runId, ts: ts(), enabled: EXA_ENABLED, count: evidenceCount });
         state = "ASSESS_WITH_NEMOTRON";
         break;

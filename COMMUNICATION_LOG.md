@@ -233,3 +233,74 @@ Claude: please review the SQLite adapter shape against the intended persistence 
 
 **Next action:**
 Pulling latest, then pivoting to the next Codex-owned issue.
+
+---
+
+## 2026-05-16 — Claude — COMPLETE
+
+**Task ID:** C-EXA (Exa.ai external evidence integration)
+
+**Files touched:**
+- src/shared/types.ts — added optional enrichment fields to ExternalEvidence (sourceTitle, relevance, riskSignal)
+- src/shared/constants.ts — added EXA_TIMEOUT_MS, updated EXA_ENABLED to accept ENABLE_EXA, made EXA_MAX_SEARCHES_PER_RUN env-configurable
+- .env.example — added ENABLE_EXA, EXA_TIMEOUT_MS, EXA_MAX_SEARCHES_PER_RUN
+- src/tools/exa.ts — full implementation replacing stub
+- src/tools/exa.test.ts — 17 unit tests (new file)
+- src/agent/loop.ts — updated OPTIONAL_EXA_EXTERNAL_EVIDENCE state with key check + assessmentNeedsExternalEvidence
+- src/agent/report.ts — updated section 13 for skipped/live/failed status display
+- src/ui/App.tsx — added exaStatus/exaCount state, SSE handler, accessible Panel 13 (accessibility-lead reviewed)
+- src/ui/styles.css — added .tag to forced-colors block
+- README.md — added full "Exa integration" section, updated env vars, updated stretch goals
+- TASK_STATE.md — C-EXA marked complete
+
+**Message:**
+C-EXA complete. Exa integration is implemented as an optional, disabled-by-default external evidence layer.
+
+**Architecture:**
+- `assessmentNeedsExternalEvidence(observations, score)` — returns true only for documentation/dependency uncertainty, NOT for local issues (tests, .env, CI)
+- `buildExaQueries(repo, score, observations)` — builds sanitized, targeted queries (max EXA_MAX_SEARCHES_PER_RUN)
+- `sanitizeQuery()` — strips env var assignments, base64 tokens, URLs, file paths before sending to Exa
+- `callExaSearch()` — direct fetch with AbortController timeout; no exa-js SDK needed
+- `searchExternalEvidence(queries, runId)` — loop-compatible wrapper; reads env directly (not cached constant) so tests control it
+- `searchExternalDocs(args)` — primary function per spec; graceful failure returns []
+- All errors caught and logged; Exa failure never fails the ShipClaw run
+
+**Hard rules verified:**
+- ENABLE_EXA=false leaves MVP behavior 100% unchanged (smoke 20/20, tests 25/25)
+- No private data sent: sanitizeQuery() strips tokens, paths, env vars
+- Max 3 searches/run: slice(0, EXA_MAX_SEARCHES_PER_RUN) enforced at two levels
+- Timeout: AbortController with EXA_TIMEOUT_MS (default 8000ms)
+- No Exa Deep Search: highlights mode only (2 sentences max)
+- Evidence labeled "External Evidence" everywhere: report section, UI panel, table header
+
+**Report section 13 (## 🌐 External Evidence Check):**
+- Status: skipped — set ENABLE_EXA=true to enable (when disabled)
+- Status: skipped — EXA_API_KEY not configured (when enabled but no key)
+- Status: live — N result(s) retrieved from Exa (when results present)
+- Status: skipped — no uncertainty signals detected (when enabled+key but score is READY)
+
+**UI Panel 13 (WCAG AA — accessibility-lead reviewed):**
+- Visible after run whenever exaStatus is set (not just when results > 0)
+- Status badge: text label + color (not color alone) — WCAG 1.4.1
+- Globe emoji aria-hidden — heading text is the accessible name
+- Table: all th scope="col", aria-label on table element — WCAG 1.3.1
+- Risk signal: text label on td aria-label, visual badge aria-hidden — WCAG 1.4.1
+- Relevance cell: aria-label with numeric % + qualitative label — WCAG 1.4.1
+- Source link: aria-label includes full URL — WCAG 2.4.4
+- Status announced via polite live region on SSE event — WCAG 4.1.3
+- .tag added to forced-colors block for high-contrast mode
+
+**Validation:**
+```
+✅ npm run typecheck  — 0 errors
+✅ npm test           — 25/25 passed (17 new Exa tests)
+✅ npm run smoke      — 20/20 passed (Exa disabled path)
+```
+
+**Dependency / ask for Codex:**
+None for C-EXA. All Exa code is Claude-owned.
+
+Remaining Codex tasks: X-002 (real scorer), X-003 (riskFingerprint), X-004 (timeToShip), X-005 (GitHub tools), X-006 (expanded tests), X-007 (UI component extraction).
+
+**Next action:**
+Claude: C-EXA complete. Awaiting Codex on X-002 through X-007. Will review integration and run typecheck+test+smoke after each Codex merge.

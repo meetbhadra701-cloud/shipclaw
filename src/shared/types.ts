@@ -101,6 +101,10 @@ export interface ExternalEvidence {
   url: string;
   relevanceScore: number;
   fetchedAt: string;
+  // Optional enrichment fields (populated by real Exa calls, absent in stubs/fallback)
+  sourceTitle?: string;
+  relevance?: "high" | "medium" | "low";
+  riskSignal?: "supports-readiness" | "warns-against-readiness" | "neutral";
 }
 
 // ─── Observations ─────────────────────────────────────────────────────────────

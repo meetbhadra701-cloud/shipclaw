@@ -48,7 +48,18 @@ interface RunState {
   reportMarkdown: string | null;
   memory: Array<{ key: string; value: string; updatedAt: string }>;
   auditLog: Array<{ actor: string; action: string; detail?: string; createdAt: string }>;
-  externalEvidence: Array<{ source: string; query: string; snippet: string; relevanceScore: number }>;
+  externalEvidence: Array<{
+    source: string;
+    query: string;
+    snippet: string;
+    relevanceScore: number;
+    url?: string;
+    sourceTitle?: string;
+    relevance?: "high" | "medium" | "low";
+    riskSignal?: "supports-readiness" | "warns-against-readiness" | "neutral";
+  }>;
+  exaStatus: "skipped" | "live" | "failed" | null;
+  exaCount: number;
 }
 
 const initialState: RunState = {
@@ -67,6 +78,8 @@ const initialState: RunState = {
   memory: [],
   auditLog: [],
   externalEvidence: [],
+  exaStatus: null,
+  exaCount: 0,
 };
 
 // ── Markdown component overrides (heading remapping, table scope) ─────────────
@@ -196,6 +209,20 @@ export default function App() {
           case "time_to_ship_estimated":
             next.timeToShip = event.estimate;
             break;
+          case "external_evidence_status": {
+            const exaStatus: RunState["exaStatus"] =
+              !event.enabled ? "skipped"
+              : event.count > 0 ? "live"
+              : "skipped";
+            next.exaStatus = exaStatus;
+            next.exaCount = event.count;
+            if (exaStatus === "live") {
+              announce(`External evidence: ${event.count} result${event.count === 1 ? "" : "s"} retrieved from Exa.`);
+            } else {
+              announce("External evidence: Exa search skipped.");
+            }
+            break;
+          }
           case "approval_requested":
             next.approval = event.approval;
             next.status = "awaiting_approval";
@@ -781,30 +808,129 @@ export default function App() {
             </section>
           )}
 
-          {/* Panel 13: External Evidence */}
-          {runState.externalEvidence.length > 0 && (
+          {/* Panel 13: External Evidence — visible after run reports Exa status */}
+          {runState.status !== "idle" && runState.exaStatus !== null && (
             <section className="panel" aria-labelledby="panel-evidence-heading">
-              <h2 id="panel-evidence-heading">🌐 External Evidence</h2>
-              <table className="category-table mt-2" aria-label="External evidence from Exa">
-                <thead>
-                  <tr>
-                    <th scope="col">Source</th>
-                    <th scope="col">Query</th>
-                    <th scope="col">Snippet</th>
-                    <th scope="col">Relevance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {runState.externalEvidence.map((e, i) => (
-                    <tr key={i}>
-                      <td className="text-mono text-xs">{e.source}</td>
-                      <td className="text-sm">{e.query.slice(0, 40)}</td>
-                      <td className="text-sm">{e.snippet.slice(0, 80)}…</td>
-                      <td>{(e.relevanceScore * 100).toFixed(0)}%</td>
+              {/* Globe emoji is aria-hidden; heading text carries the accessible name */}
+              <h2 id="panel-evidence-heading">
+                <span aria-hidden="true">🌐</span>{" "}External Evidence
+              </h2>
+
+              {/* Status badge — text label + color, not color alone (WCAG 1.4.1) */}
+              <p
+                className="text-sm mt-2"
+                aria-label={
+                  runState.exaStatus === "live"
+                    ? `External evidence status: Live — ${runState.exaCount} result${runState.exaCount === 1 ? "" : "s"} retrieved`
+                    : runState.exaStatus === "failed"
+                    ? "External evidence status: Failed — Exa search encountered an error"
+                    : "External evidence status: Skipped — Exa search was not performed"
+                }
+              >
+                <span aria-hidden="true">
+                  {runState.exaStatus === "live" && (
+                    <><span className="tag tag--live">Live</span>
+                    <span className="text-muted text-xs" style={{ marginLeft: "0.5rem" }}>
+                      {runState.exaCount} result{runState.exaCount === 1 ? "" : "s"} from Exa
+                    </span></>
+                  )}
+                  {runState.exaStatus === "skipped" && (
+                    <span className="risk-severity risk-severity--low" style={{ textTransform: "none", fontSize: "0.8125rem" }}>
+                      Skipped
+                    </span>
+                  )}
+                  {runState.exaStatus === "failed" && (
+                    <span className="risk-severity risk-severity--critical">Failed</span>
+                  )}
+                </span>
+              </p>
+
+              {/* Skipped: plain-language reason */}
+              {runState.exaStatus === "skipped" && (
+                <p className="text-sm text-muted mt-2">
+                  Exa web search is disabled for this run. Enable it via the{" "}
+                  <code>EXA_API_KEY</code> environment variable to surface external
+                  evidence in the readiness assessment.
+                </p>
+              )}
+
+              {/* Failed: persistent error note (live region announced it already) */}
+              {runState.exaStatus === "failed" && (
+                <p className="text-sm text-muted mt-2">
+                  The Exa search encountered an error during this run. The readiness
+                  assessment was completed without external evidence. Check server logs
+                  for details.
+                </p>
+              )}
+
+              {/* Live: results table with full accessible structure */}
+              {runState.exaStatus === "live" && runState.externalEvidence.length > 0 && (
+                <table
+                  className="category-table mt-2"
+                  aria-label={`External evidence from Exa — ${runState.exaCount} result${runState.exaCount === 1 ? "" : "s"}`}
+                >
+                  <thead>
+                    <tr>
+                      {/* All headers carry scope="col" — WCAG 1.3.1 */}
+                      <th scope="col">Source</th>
+                      <th scope="col">Source Title</th>
+                      <th scope="col">Query</th>
+                      <th scope="col">Excerpt</th>
+                      <th scope="col">Relevance</th>
+                      <th scope="col">Risk Signal</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {runState.externalEvidence.map((ev, i) => {
+                      const riskSignalLabel =
+                        ev.riskSignal === "supports-readiness" ? "Supports readiness"
+                        : ev.riskSignal === "warns-against-readiness" ? "Warns against readiness"
+                        : ev.riskSignal === "neutral" ? "Neutral"
+                        : "Unknown";
+
+                      const riskSignalBadge =
+                        ev.riskSignal === "supports-readiness" ? (
+                          <span className="risk-severity risk-severity--low" aria-hidden="true" style={{ textTransform: "none" }}>↑ Supports</span>
+                        ) : ev.riskSignal === "warns-against-readiness" ? (
+                          <span className="risk-severity risk-severity--critical" aria-hidden="true" style={{ textTransform: "none" }}>↓ Warns</span>
+                        ) : (
+                          <span className="risk-severity risk-severity--medium" aria-hidden="true" style={{ textTransform: "none" }}>— Neutral</span>
+                        );
+
+                      return (
+                        <tr key={i}>
+                          <td className="text-mono text-xs">
+                            {ev.url ? (
+                              <a href={ev.url} aria-label={`Source: ${ev.url}`}>{ev.source}</a>
+                            ) : ev.source}
+                          </td>
+                          <td className="text-sm">
+                            {ev.sourceTitle ?? <span className="text-muted" aria-label="Not available">—</span>}
+                          </td>
+                          <td className="text-sm">{ev.query.slice(0, 60)}{ev.query.length > 60 ? "…" : ""}</td>
+                          <td className="text-sm">{ev.snippet.slice(0, 120)}{ev.snippet.length > 120 ? "…" : ""}</td>
+                          <td aria-label={`Relevance: ${(ev.relevanceScore * 100).toFixed(0)}%${ev.relevance ? `, ${ev.relevance}` : ""}`}>
+                            <span aria-hidden="true">
+                              {(ev.relevanceScore * 100).toFixed(0)}%
+                              {ev.relevance && (
+                                <span
+                                  className={`risk-severity risk-severity--${ev.relevance === "high" ? "low" : ev.relevance === "medium" ? "medium" : "high"}`}
+                                  style={{ marginLeft: "0.25rem", textTransform: "none" }}
+                                >
+                                  {ev.relevance}
+                                </span>
+                              )}
+                            </span>
+                          </td>
+                          <td aria-label={`Risk signal: ${riskSignalLabel}`}>
+                            <span aria-hidden="true">{riskSignalBadge}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </section>
           )}
 

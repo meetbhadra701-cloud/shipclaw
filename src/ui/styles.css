@@ -716,6 +716,7 @@ body {
 @media (forced-colors: active) {
   .score-band,
   .risk-severity,
+  .tag,
   .decision-badge,
   .btn {
     forced-color-adjust: none;

@@ -174,9 +174,11 @@ NEMOTRON_BASE_URL=https://integrate.api.nvidia.com/v1
 NEMOTRON_MODEL=mistralai/mistral-nemotron
 GITHUB_TOKEN=your-github-token
 
-# Optional
+# Optional — Exa external evidence (see "Exa integration" section below)
 EXA_API_KEY=your-exa-key
-EXA_ENABLED=false          # Set to true to enable external evidence search
+ENABLE_EXA=false           # Set to true to enable (also accepts EXA_ENABLED=true)
+EXA_TIMEOUT_MS=8000        # Per-search timeout in milliseconds
+EXA_MAX_SEARCHES_PER_RUN=3 # Hard cap — never more than 3 Exa calls per run
 
 # Demo/dev mode
 DEMO_MODE=false            # Set to true for fixture data
@@ -266,20 +268,73 @@ All coordination happens via `COMMUNICATION_LOG.md` and `TASK_STATE.md`, committ
 
 ---
 
+## Exa integration
+
+ShipClaw optionally uses [Exa.ai](https://exa.ai) to surface external documentation context when the deterministic score detects uncertainty.
+
+### What Exa does
+
+Exa searches **public documentation only** — package docs, framework guides, changelogs, known setup gotchas, and deprecation notices. It is called only when the deterministic analysis reveals genuine uncertainty:
+
+- Documentation category failing (README may not match current framework docs)
+- Dependency freshness failing (packages may have known compatibility issues)
+- Observations with native/setup/deployment signals
+- Score in NOT_READY band
+
+### What Exa does NOT do
+
+- Does not replace GitHub inspection, local repo scanning, or deterministic scoring
+- Does not override direct repo evidence
+- Does not send secrets, `.env` values, private repo contents, or full source files
+- Does not use Exa Deep Search (MVP uses highlights only)
+- Does not run unless both `ENABLE_EXA=true` AND `EXA_API_KEY` are set
+
+### Safety rules (enforced in code)
+
+| Rule | Enforcement |
+|---|---|
+| Disabled by default | `ENABLE_EXA=false` in `.env.example` |
+| No API key → skip silently | Key check before every call |
+| Max 3 searches/run | `EXA_MAX_SEARCHES_PER_RUN=3` (hard cap) |
+| 8 second timeout | `AbortController` per request |
+| Exa failure → run continues | All errors caught, return `[]` |
+| Only public queries sent | `sanitizeQuery()` strips env vars, tokens, file paths |
+| Labeled as "External Evidence" | Every report section and UI panel uses this label |
+| Cannot override repo evidence | Evidence appended to context, not merged into score |
+
+### Enable Exa
+
+```bash
+# In .env.local (gitignored)
+ENABLE_EXA=true
+EXA_API_KEY=your-exa-key
+EXA_TIMEOUT_MS=8000
+EXA_MAX_SEARCHES_PER_RUN=3
+```
+
+Then run:
+
+```bash
+DEMO_MODE=true ALLOW_LLM_FALLBACK=true npm run agent:run -- --repo https://github.com/owner/repo --goal "Check release readiness"
+```
+
+The report section `## 🌐 External Evidence Check` shows **Status: live** with results, or **Status: skipped** with the reason when disabled.
+
+---
+
 ## Safety
 
 - **Secrets never enter** the repo, logs, `COMMUNICATION_LOG.md`, `TASK_STATE.md`, commits, or reports.
 - **All risky writes** require human approval via `POST /api/approvals/:id/approve`.
 - **Fallback mode** is clearly labeled in UI and reports — no silent degradation.
-- **Exa is off by default** — no data leaves the system unless explicitly enabled.
+- **Exa is off by default** — no data leaves the system unless explicitly enabled. See "Exa integration" above.
 - **Shell commands** run through an allowlist (`npm run typecheck`, `npm test` only).
 
 ---
 
 ## Known limitations
 
-- **better-sqlite3** fails to compile on Node 24 due to native binding issues. The agent loop uses `InMemoryDb` (fully functional, no persistence across server restarts). SQLite persistence is a Codex task (X-001).
-- **Exa external evidence** is stubbed — set `EXA_ENABLED=true` and provide `EXA_API_KEY` to enable.
+- **better-sqlite3** was replaced with Node 24's native `node:sqlite` (X-001 complete by Codex).
 - **GitHub live mode** uses the `github.ts` stub in demo mode. Full Octokit integration is a Codex task (X-005).
 - **Real shell checks** (`npm run typecheck`, `npm test`) run against the ShipClaw project itself in demo mode, not the target repo.
 
@@ -340,11 +395,11 @@ Update `vite.config.ts` proxy target to match.
 
 ## Stretch goals
 
-- **C-EXA:** Enable Exa external evidence. Set `EXA_ENABLED=true` + `EXA_API_KEY`. Max 3 searches/run, cached, no private code sent.
+- **C-EXA:** ✅ Complete — Exa external evidence is implemented. See "Exa integration" section above.
 - **C-NEMO:** NemoClaw/GX10 — run Nemotron on a local GPU via Brev. Requires explicit user approval for paid compute. Draft setup documented separately.
-- **SQLite persistence (X-001):** Replace `InMemoryDb` with `SqliteDb` against `src/storage/schema.sql`. Codex-owned.
-- **Real GitHub tool (X-005):** Full Octokit + simple-git integration for live repo analysis.
-- **Test suite (X-006):** vitest unit tests for scorer, riskFingerprint, timeToShip, assessor fallback, memory diff.
+- **SQLite persistence (X-001):** ✅ Complete — Codex implemented `SqliteDb` using Node 24 `node:sqlite`.
+- **Real GitHub tool (X-005):** Full Octokit + simple-git integration for live repo analysis. Codex-owned.
+- **Test suite (X-006):** Expand vitest unit tests for riskFingerprint, timeToShip, assessor fallback, memory diff. Codex-owned.
 
 ---
 

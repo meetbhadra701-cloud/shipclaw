@@ -74,8 +74,12 @@ export const MINUTES_PER_MEDIUM_BLOCKER = 20;
 export const TIME_BUFFER_MULTIPLIER = 1.5;
 
 // ─── Exa ──────────────────────────────────────────────────────────────────────
-export const EXA_MAX_SEARCHES_PER_RUN = 3;
-export const EXA_ENABLED = process.env["EXA_ENABLED"] === "true";
+export const EXA_MAX_SEARCHES_PER_RUN =
+  parseInt(process.env["EXA_MAX_SEARCHES_PER_RUN"] ?? "3", 10);
+export const EXA_ENABLED =
+  process.env["EXA_ENABLED"] === "true" || process.env["ENABLE_EXA"] === "true";
+export const EXA_TIMEOUT_MS =
+  parseInt(process.env["EXA_TIMEOUT_MS"] ?? "8000", 10);
 
 // ─── Fallback Labels ──────────────────────────────────────────────────────────
 export const FALLBACK_BANNER =

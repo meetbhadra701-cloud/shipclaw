@@ -42,7 +42,7 @@
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| C-EXA | Exa integration | 📋 todo | Stub in src/tools/exa.ts. EXA_ENABLED=false by default. |
+| C-EXA | Exa integration | ✅ complete | yes | Full impl: searchExternalDocs, assessmentNeedsExternalEvidence, buildExaQueries. 17 tests. UI panel with WCAG AA. |
 | C-NEMO | NemoClaw/GX10 story | 📋 todo | Document what was attempted and what was dropped. |
 
 ---
