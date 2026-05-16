@@ -1,0 +1,28 @@
+# Environment secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Runtime data — ignored, too large / contains private content
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal
+runs/
+
+# Build output
+node_modules/
+dist/
+.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Skills install artifacts (managed by npx skills, not committed)
+.agents/
+skills-lock.json
