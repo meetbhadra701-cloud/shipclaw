@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-05-16 13:10 PT — Claude — DEPLOY
+
+**Task ID:** C-011
+**Status:** complete
+
+ShipClaw deployed to production on Render Web Service.
+
+- **Public URL:** https://shipclaw.onrender.com
+- **Platform:** Render Free Web Service
+- **Service ID:** srv-d84crbjeo5us73e8crdg
+- **Commit:** `4db0216` (deploy: production-ready server)
+- **Build command:** `npm install --include=dev && npm run build`
+- **Start command:** `npm start`
+
+Changes made:
+- Added `GET /api/health` endpoint
+- Express serves `dist/ui/` as static frontend in production (SPA fallback)
+- Creates `runs/` and `data/` directories at startup
+- Added `npm start` script; moved `tsx` to dependencies
+- DEPLOYMENT_PLAN.md + DEPLOYMENT_QA.md + DEMO_BACKUP_PLAN.md created
+
+Verification passed:
+- Health endpoint: `{"status":"ok","nemotron":"configured"}`
+- Dashboard loads, no console errors
+- Demo run completes: Score 55/100, HOLD, Approval Gate, Live Report Preview all working
+- Direct page reload works (SPA routing via Express fallback)
+
+Build fix: first deploy failed — `vite` not found because `NODE_ENV=production` skipped devDependencies. Fixed by `--include=dev` flag.
+
+---
+
 ## 2026-05-15 19:55 PT — Claude — INIT
 
 **Task ID:** C-000

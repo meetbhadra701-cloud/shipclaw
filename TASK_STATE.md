@@ -20,6 +20,7 @@
 | C-008 | React dashboard | ✅ complete | yes | src/ui/App.tsx (13 panels, WCAG AA), src/ui/styles.css, index.html, main.tsx |
 | C-009 | OpenClaw skill + install script | ✅ complete | yes | openclaw/skills/shipclaw/SKILL.md, scripts/install-openclaw-skill.ts |
 | C-010 | README + demo script + submission | ✅ complete | yes | README.md (17 sections), docs/demo-script.md |
+| C-011 | Production deployment to Render | ✅ complete | yes | https://shipclaw.onrender.com — health ✅, dashboard ✅, demo run ✅ |
 
 ---
 

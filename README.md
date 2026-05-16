@@ -4,6 +4,8 @@
 
 Built for [shortesthack.com](https://shortesthack.com).
 
+**Live demo:** https://shipclaw.onrender.com
+
 ---
 
 ## What it does

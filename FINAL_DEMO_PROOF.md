@@ -1,14 +1,16 @@
 # ShipClaw — Final Demo Proof Audit
 
-> **Verdict: 🟢 GREEN — Live Nemotron verified, all gates green**
+> **Verdict: GREEN — Live Nemotron verified, all gates green, production deployed**
 > Auditor: Claude (QA Lead, Demo Orchestrator, Senior Integrator)
 > Date: 2026-05-16
-> Commit: `246dca0` (initial audit); live Nemotron verification added same session
+> Commit: `4db0216` (deploy: production-ready server — health endpoint, static serving, start script)
+
+**Live demo URL: https://shipclaw.onrender.com**
 
 All automated gates are green. Live Nemotron call confirmed with `mistralai/mistral-nemotron` at `https://integrate.api.nvidia.com/v1`. One remaining caveat (honest, not blocking):
 - Live GitHub/shell tools are stubs in demo mode — fixture data is used instead (X-005 not implemented)
 
-The demo is judge-ready. Nemotron explanation path is live and producing real LLM output.
+The demo is judge-ready. Nemotron explanation path is live and producing real LLM output. App deployed to Render and verified end-to-end at public URL.
 
 ---
 
