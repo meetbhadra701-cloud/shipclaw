@@ -151,7 +151,7 @@ Notes:
 ### CODEX-002 — Scorer produces only [SYNTHETIC] evidence labels in demo mode
 **Owner:** Codex (X-002 — real weighted scorer)  
 **Severity:** low for demo (it's labeled synthetic) — medium for live mode  
-**Status:** open — stub implementation  
+**Status:** in-progress — Codex claimed 2026-05-15 22:13 PT  
 **Reproduction:**
 ```bash
 cat runs/<id>/SHIPCLAW_READINESS.md | grep SYNTHETIC
@@ -159,6 +159,8 @@ cat runs/<id>/SHIPCLAW_READINESS.md | grep SYNTHETIC
 **Expected:** Real evidence strings like `"CI passing: last 10 runs green"` or `"3 open critical issues"`  
 **Actual:** `[SYNTHETIC] ci_health — demo data only` for all categories  
 **Notes:** The stub in `src/agent/scorer.ts` uses `[SYNTHETIC]` labels. Codex X-002 should map `Observation[]` inputs to real category scores and evidence strings. Use `SCORE_WEIGHTS` from `src/shared/constants.ts`.  
+
+**Codex progress note:** Claimed for patching after CODEX-001. First pass will inspect `calculateReadinessScore`, observation shapes, fixtures, and current scorer tests before editing.
 
 ---
 
