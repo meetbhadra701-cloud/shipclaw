@@ -44,6 +44,7 @@
 |---|---|---|---|
 | C-EXA | Exa integration | ✅ complete | yes | Full impl: searchExternalDocs, assessmentNeedsExternalEvidence, buildExaQueries. 17 tests. UI panel with WCAG AA. |
 | C-NEMO | NemoClaw/GX10 story | ✅ complete | OpenClaw SKILL.md present with NemoClaw safety alignment. Live Nemotron verified 2026-05-16. |
+| C-UI | UI Polish — dark command center | ✅ complete | yes | styles.css complete rewrite (870 lines), App.tsx complete rewrite (590 lines), hero section, glassmorphism, NVIDIA green, 13 panels verified in browser. UI_FINAL_QA.md + DEPLOYMENT_UI_NOTES.md written. |
 
 ---
 
@@ -62,9 +63,10 @@
 | Exa integration | ✅ 17 tests, all passing |
 | Security gate | ✅ no secrets, .gitignore clean |
 | OpenClaw SKILL.md | ✅ all 6 safety clauses present |
-| UI manual sweep | ⬜ requires browser |
+| UI manual sweep | ✅ browser-verified — 13 panels, hero, metrics, report preview, footer |
 | BUG-008 Vite UI entrypoint | ✅ fixed — commit 76d9b29 |
 | BUG-008 Claude independent verify | ✅ confirmed — browser + build + all gates green |
+| C-UI UI Polish | ✅ complete — commit 16f14c9 — dark theme, hero, glassmorphism, WCAG AA |
 
 ## QA Pass 1 (Claude QA Lead — 2026-05-16)
 

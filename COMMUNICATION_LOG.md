@@ -472,3 +472,41 @@ None. Nemotron integration is Claude-owned.
 
 **Next action:**
 Project is GREEN and demo-ready. No further changes needed unless instructed.
+
+---
+
+**Entry QA-008**
+**Timestamp:** 2026-05-16T10:30:00Z
+**Agent:** Claude
+**Type:** COMPLETION
+**Task ID:** C-UI (UI Polish)
+**Files changed:**
+- `src/ui/styles.css` — complete rewrite: dark theme, glassmorphism, NVIDIA green, grid bg, CSS-only motion
+- `src/ui/App.tsx` — complete rewrite: hero section, status pills, hero metrics, report panel states, copy button, proof footer
+- `public/assets/README.txt` — hero video slot placeholder
+- `UI_POLISH_PLAN.md` — detailed plan (pre-committed)
+- `UI_FINAL_QA.md` — browser QA results
+- `DEPLOYMENT_UI_NOTES.md` — deployment guidance
+
+**Message:**
+UI polish complete. ShipClaw now presents as a dark "Autonomous Release Command Center":
+- Hero section: H1 brand + 6 capability badges (ul/li, WCAG) + 5 system status pills + hero metrics bar after run
+- Dark premium theme (#05070a) with technical grid, glassmorphism panels, NVIDIA green accent (#76b900)
+- All 13 panels verified in Chrome: Goal, Plan, Score, Decision, Timeline, Risk Fingerprint, Time-to-Ship, Findings, Live Report Preview (14-section markdown rendered), Memory, Audit Log, External Evidence, Approval Gate (shown when actions pending)
+- Demo mode banner: full-width with proof labels ("Scoring, memory, Nemotron reasoning, approval gate, and report generation are real")
+- Proof bar (idle state) + technical proof footer with ✓ capability claims
+- CSS-only motion: panel-fade-in, badge-pulse, glow-breathe, score-bar-grow — all wrapped in prefers-reduced-motion
+- WCAG AA: all contrast ratios verified, 1 H1, skip link, aria-live=4 regions, role=alert preserved, forced-colors block complete
+
+**Gates:**
+- typecheck: 0 errors ✅
+- test: 34/34 ✅
+- smoke: 20/20 ✅
+- build: success (329KB JS, 22KB CSS) ✅
+- browser: all 13 panels, no UI errors ✅
+
+**Dependency / ask for Codex:**
+None.
+
+**Next action:**
+Push commits to remote. Project is demo-ready. All MVP gate items complete.

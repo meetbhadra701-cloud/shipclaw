@@ -429,6 +429,17 @@ export default function App() {
 
       {/* ── Hero Section ──────────────────────────────────────────────────── */}
       <header className="hero-section">
+        {/* Optional hero video background — CSS fallback gradient used when file absent */}
+        <video
+          className="hero-video-bg"
+          src="/assets/hero-loop.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          aria-hidden="true"
+          onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = "none"; }}
+        />
         <div className="hero-inner">
 
           {/* Brand row */}
