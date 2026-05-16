@@ -1,8 +1,8 @@
 # ShipClaw — Demo QA Tracker
 
 > Owner: Claude (QA Lead, Demo Orchestrator, Senior Integrator)
-> Last updated: 2026-05-16 — QA Pass 2 starting (post-Exa + Codex merges)
-> **Overall Demo Status: 🔄 IN PROGRESS — QA Pass 2 running**
+> Last updated: 2026-05-16 — QA Pass 2 COMPLETE
+> **Overall Demo Status: ✅ PASS 2 COMPLETE — 3 bugs fixed, all automated gates green**
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Category | Pass 1 | Pass 2 |
 |---|---|---|
-| Automated gates | ✅ All green | 🔄 running |
-| Artifact generation | ✅ All 6 correct | 🔄 running |
-| API endpoints | ✅ All 9 OK | 🔄 running |
-| Report content | ✅ 14 sections | 🔄 running |
-| Claude-owned bugs fixed | ✅ 4 fixed | 🔄 scanning |
+| Automated gates | ✅ All green | ✅ All green |
+| Artifact generation | ✅ All 6 correct | ✅ All 6 correct |
+| API endpoints | ✅ All 9 OK | ✅ All 9 OK |
+| Report content | ✅ 14 sections | ✅ 14 sections + audit entries |
+| Claude-owned bugs fixed | ✅ 4 fixed | ✅ 3 more fixed (BUG-005, 006, 007) |
 | Codex-assigned issues | ✅ CODEX-001–003 fixed | ✅ X-002 + X-006 merged |
-| Exa integration | ⬜ not yet | 🔄 running |
+| Exa integration | ⬜ not yet | ✅ Complete — 17 tests |
 | UI manual sweep | ⬜ browser needed | ⬜ browser needed |
-| OpenClaw skill | ✅ present | ⚠️ missing Reconstruct/CoT clauses |
-| Memory across runs | ✅ SQLite-backed | 🔄 re-verifying |
+| OpenClaw skill | ✅ present | ✅ Reconstruct/CoT clauses added |
+| Memory across runs | ✅ SQLite-backed | ✅ re-verified — persisting |
 
 ---
 
@@ -27,14 +27,14 @@
 
 | Gate | Command | Result | Details |
 |---|---|---|---|
-| TypeScript typecheck | `npm run typecheck` | 🔄 | |
-| Unit tests | `npm test` | 🔄 | |
-| Smoke test | `npm run smoke` | 🔄 | |
-| Fallback demo CLI | `ENABLE_EXA=false npm run agent:run --demo` | 🔄 | |
-| Exa disabled in report | inspect SHIPCLAW_READINESS.md | 🔄 | |
-| Server API routes | curl /api/* | 🔄 | |
-| OpenClaw SKILL.md | content review | ⚠️ see BUG-005 | |
-| Security check | .gitignore + diff | 🔄 | |
+| TypeScript typecheck | `npm run typecheck` | ✅ PASS | 0 errors |
+| Unit tests | `npm test` | ✅ PASS | 34/34 (7 files) |
+| Smoke test | `npm run smoke` | ✅ PASS | 20/20 checks |
+| Fallback demo CLI | `ENABLE_EXA=false npm run agent:run --demo` | ✅ PASS | FINALIZE reached, 6 artifacts, Audit Summary populated |
+| Exa disabled in report | inspect SHIPCLAW_READINESS.md §13 | ✅ PASS | Shows "skipped — set `ENABLE_EXA=true` to enable" |
+| Server API routes | curl /api/* | ✅ PASS (Pass 1 verified) | All 9 routes correct |
+| OpenClaw SKILL.md | content review | ✅ PASS | BUG-005 fixed — all 6 safety clauses present |
+| Security check | .gitignore + diff | ✅ PASS | No secrets in repo, .env/.env.local gitignored |
 
 ---
 
@@ -87,19 +87,37 @@
 
 ---
 
-## Bugs Found — Pass 2
+## Bugs Found — Pass 2 (all fixed)
 
-### BUG-005 — SKILL.md missing Reconstruct exclusion and chain-of-thought clause
+### BUG-005 — SKILL.md missing Reconstruct exclusion and chain-of-thought clause ✅ FIXED
 **Owner:** Claude
-**Severity:** medium — hackathon judges may check for these explicit safety rules
-**Status:** open — Claude fixing in this pass
+**Severity:** medium
+**Status:** ✅ FIXED — commit 95ad64e
 **Found by:** Claude (QA Gate 6)
-**Reproduction:** Read `openclaw/skills/shipclaw/SKILL.md` — search for "Reconstruct" or "chain-of-thought"
-**Expected:** Skill explicitly states: (1) do not use Reconstruct, (2) do not expose hidden chain-of-thought
-**Actual:** Neither phrase appears in the skill file
-**Likely files:** `openclaw/skills/shipclaw/SKILL.md`
-**Blocks demo?:** no — but required per QA Gate 6 spec
-**Notes:** "Exa is optional and disabled by default" is present. "Remote writes require approval" is present. Adding the two missing clauses is a safe text-only fix.
+**Fix:** Added two safety bullet points to `openclaw/skills/shipclaw/SKILL.md`:
+  - "Do not use Reconstruct — ShipClaw has no Reconstruct dependency..."
+  - "Do not expose hidden chain-of-thought — all reasoning in audit trail..."
+
+---
+
+### BUG-006 — Verdict section polluted with FALLBACK_BANNER text ✅ FIXED
+**Owner:** Claude
+**Severity:** medium — Verdict section showed full fallback warning instead of clean explanation
+**Status:** ✅ FIXED — commit 95ad64e
+**Found by:** Claude (QA Pass 2 report inspection)
+**Root cause:** `buildFallbackExplanation()` in `prompts.ts` prepended `FALLBACK_BANNER` to the explanation string, which the report template placed directly in the `## Verdict` section.
+**Fix:** Removed `FALLBACK_BANNER` from `buildFallbackExplanation()`. Banner already appears in report header/footer via `modeNote`. Explanation is now clean: goal, score/band, decision, failing categories.
+
+---
+
+### BUG-007 — Audit Summary always empty in SHIPCLAW_READINESS.md ✅ FIXED
+**Owner:** Claude (Codex-written code, Claude found + fixed)
+**Severity:** high — report section 14 (Audit Summary) showed empty table for every run
+**Status:** ✅ FIXED — commit 95ad64e
+**Found by:** Claude (QA Pass 2 report inspection + deep investigation)
+**Root cause:** `SqliteDb.updateRun()` called `createRun()`, which used `INSERT OR REPLACE INTO runs`. SQLite's `REPLACE` strategy is `DELETE + INSERT`. The `DELETE` triggered `ON DELETE CASCADE` on `audit_logs`, `events`, and `memories` child tables. The agent while-loop calls `updateRun(runId, { status: "running" })` at the top of EVERY iteration — so every state transition cascaded away all audit entries written in the previous state. By the time `getAuditLog(runId)` was called in `WRITE_ARTIFACTS`, the table was empty.
+**Fix:** `updateRun()` now uses a targeted `UPDATE SET ...` SQL statement instead of delegating to `createRun()`. Child rows are preserved across run status updates.
+**Verified:** Report §14 now shows 3 audit entries (run_created, auto_approved, actions_executed).
 
 ---
 
@@ -139,8 +157,8 @@ Run `npm run dev` → http://localhost:5173
 | CLI demo command works | ✅ | Verified in smoke |
 | Exa optional + disabled by default | ✅ | Present in skill |
 | Remote writes require approval | ✅ | Present in skill |
-| No hidden chain-of-thought | ⚠️ | Missing — BUG-005 — fixing this pass |
-| No Reconstruct | ⚠️ | Missing — BUG-005 — fixing this pass |
+| No hidden chain-of-thought | ✅ | BUG-005 fixed — clause added |
+| No Reconstruct | ✅ | BUG-005 fixed — clause added |
 | `openclaw agent --message "..."` live test | ⬜ | manual verification needed |
 | Install script present | ✅ | `scripts/install-openclaw-skill.ts` |
 
@@ -156,23 +174,29 @@ Run `npm run dev` → http://localhost:5173
 | Risky writes require approval | ✅ PROPOSE_ACTIONS → WAIT_FOR_APPROVAL gate |
 | Exa disabled by default | ✅ `ENABLE_EXA=false` |
 | Reconstruct excluded | ✅ no dependency, no API call |
-| Secrets not in repo | 🔄 verifying |
+| Secrets not in repo | ✅ confirmed — .env/.env.local gitignored, no keys in diffs |
 | Memory visible in artifacts | ✅ 3 files per run (before/after/diff) |
 | Exa never sends private data | ✅ sanitizeQuery() enforced in exa.ts |
 | Exa failure degrades gracefully | ✅ all errors → [] return |
 
 ---
 
-## Security Status (QA Gate 5)
+## Security Status (QA Gate 5 — Pass 2)
 
 | Check | Status |
 |---|---|
-| `.env` in `.gitignore` | 🔄 |
-| No API keys in git log | 🔄 |
-| No remote GitHub writes | 🔄 |
-| No paid resources invoked | 🔄 |
-| No destructive commands | 🔄 |
+| `.env` in `.gitignore` | ✅ confirmed |
+| `.env.local` in `.gitignore` | ✅ confirmed |
+| `data/*.sqlite` in `.gitignore` | ✅ confirmed |
+| `runs/` in `.gitignore` | ✅ confirmed |
+| No API keys in git log | ✅ confirmed — grep clean |
+| No API keys in source diffs | ✅ confirmed — grep clean |
+| No remote GitHub writes | ✅ confirmed — no Octokit write calls in demo mode |
+| No paid resources invoked | ✅ confirmed — Nemotron/Exa both disabled in demo |
+| No destructive commands | ✅ confirmed — shell allowlist only |
 
 ---
 
-*QA Pass 2 started: 2026-05-16 by Claude (QA Lead, Demo Orchestrator, Senior Integrator)*
+*QA Pass 2 completed: 2026-05-16 by Claude (QA Lead, Demo Orchestrator, Senior Integrator)*
+*Bugs fixed this pass: BUG-005 (SKILL.md), BUG-006 (Verdict pollution), BUG-007 (audit cascade)*
+*All automated gates: ✅ typecheck + 34 tests + 20 smoke checks*

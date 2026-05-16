@@ -47,7 +47,24 @@
 
 ---
 
-## QA Pass (Claude QA Lead — 2026-05-16)
+## QA Pass 2 (Claude QA Lead — 2026-05-16) — COMPLETE
+
+| Check | Status |
+|---|---|
+| `npm run typecheck` | ✅ 0 errors |
+| `npm test` | ✅ 34/34 passed (7 files) |
+| `npm run smoke` | ✅ 20/20 passed |
+| Demo mode agent run | ✅ HOLD 55/100, FINALIZE reached, 6 artifacts, Audit Summary populated |
+| All 9 API endpoints | ✅ correct shapes (Pass 1 verified) |
+| BUG-005 SKILL.md clauses | ✅ fixed — commit 95ad64e |
+| BUG-006 Verdict pollution | ✅ fixed — commit 95ad64e |
+| BUG-007 audit CASCADE | ✅ fixed — commit 95ad64e |
+| Exa integration | ✅ 17 tests, all passing |
+| Security gate | ✅ no secrets, .gitignore clean |
+| OpenClaw SKILL.md | ✅ all 6 safety clauses present |
+| UI manual sweep | ⬜ requires browser |
+
+## QA Pass 1 (Claude QA Lead — 2026-05-16)
 
 | Check | Status |
 |---|---|
