@@ -84,7 +84,21 @@ npm run agent:run -- \
 
 ---
 
-### 2:35 – 3:00 | Close
+### 2:30 – 2:50 | Live rendered report
+
+Open the **Live Report Preview** panel (already visible in dashboard).
+
+- Point to the markdown table rendering in-browser from `SHIPCLAW_READINESS.md`
+- "This is the same file that lands in your `runs/` directory — it's not a screenshot."
+
+```bash
+cat runs/ssXN5vTGx8cB/memory_diff.md   # show memory delta
+cat runs/ssXN5vTGx8cB/audit.jsonl | head -5  # show audit trail
+```
+
+---
+
+### 2:50 – 3:00 | Close
 
 > "ShipClaw: deterministic score, human approval, memory across runs, polished report. Under 3 minutes from repo URL to ship/hold decision."
 

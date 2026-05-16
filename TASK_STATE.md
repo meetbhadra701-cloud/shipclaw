@@ -52,7 +52,7 @@
 | Check | Status |
 |---|---|
 | `npm run typecheck` | ✅ 0 errors |
-| `npm test` | ⚠️ no tests yet (X-006) |
+| `npm test` | ✅ 6/6 passed (scorer.test.ts — Codex to expand in X-006) |
 | `npm run smoke` | ✅ 20/20 checks passed |
 | Demo mode agent run | ✅ runs to FINALIZE, generates all artifacts |
 | `npm run dev` — UI sweep | 📋 pending manual sweep |

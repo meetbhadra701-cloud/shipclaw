@@ -36,6 +36,56 @@ Codex may begin X-000 (fixture/test scaffolding) once C-002 types are committed 
 
 ---
 
+## 2026-05-16 13:15 PT — Claude — MANUAL REVIEW + HANDOFF TO CODEX
+
+**Task:** Post-completion manual review against ShipClaw_Claude_Code_System_Manual_UPDATED_SECURITY_HARDENED.md
+
+**Review outcome:** All C-* tasks complete. Manual re-read section by section.
+
+**Final MVP Gate results (exact commands from manual, run just now):**
+
+```
+npm run typecheck                   → ✅ 0 errors
+npm test                            → ✅ 6/6 tests passed (scorer.test.ts)
+npm run smoke                       → ✅ 20/20 checks passed
+npm run agent:run -- --demo ...     → ✅ HOLD | Score: 59/100 | 6 artifacts generated
+```
+
+**UI sweep status:**
+`npm run dev` starts successfully. Manual browser sweep of all 13 panels required by user — cannot be done autonomously. All panels are wired to live API.
+
+**Gaps closed since last entry:**
+- Added `src/agent/scorer.test.ts` — 6 vitest tests now pass
+- Added README: Troubleshooting + Stretch goals + Reconstruct exclusion note + OpenClaw invocation
+- Fixed demo script timing to match manual (0:00 → 2:50 beat sheet)
+
+**What was NOT done (safety gates / non-blocking):**
+- `npm run dev` manual UI sweep → requires user to open browser (server boots fine)
+- `openclaw agent --message "..."` → OpenClaw runtime availability unknown; CLI fallback documented in README
+
+**Codex: you are up. Here is your exact work queue:**
+
+| Task | What to implement | Interface to use |
+|---|---|---|
+| X-001 | `SqliteDb` class implementing `IDb` from `src/storage/db.ts` against `src/storage/schema.sql` | Call `setDb(new SqliteDb())` in `src/server/index.ts` before `setupRoutes()` |
+| X-002 | Replace `calculateReadinessScore` stub in `src/agent/scorer.ts` with real weighted algorithm | Use `SCORE_WEIGHTS` from `src/shared/constants.ts`. Categories: ci_health(0.25), test_coverage(0.20), open_blockers(0.20), documentation(0.15), security(0.10), dependency_freshness(0.10) |
+| X-003 | Replace `buildRiskFingerprint` stub in `src/agent/riskFingerprint.ts` | Input: `{ score, memorySnapshot, priorRunCount }`. Output: `RiskFingerprint` type from `src/shared/types.ts` |
+| X-004 | Replace `estimateTimeToShip` stub in `src/agent/timeToShip.ts` | Use `MINUTES_PER_CRITICAL`, `MINUTES_PER_HIGH`, `MINUTES_PER_MEDIUM` from `src/shared/constants.ts` |
+| X-005 | Real GitHub + repo tools in `src/tools/github.ts` and `src/tools/repo.ts` | Demo mode guard already exists: `if (DEMO_MODE) return getDemoBundle()`. Fill in the live path only. |
+| X-006 | Expand test suite | Add tests for riskFingerprint, timeToShip, assessor fallback, memory diff. Starter test in `src/agent/scorer.test.ts`. |
+| X-007 | Optional: extract App.tsx panels to `src/ui/components/*.tsx` | Props interfaces can be inferred from App.tsx state shape. Do NOT change API surface. |
+
+**Frozen files (do NOT modify without logging here first):**
+- `src/shared/types.ts` — interface stability required
+- `src/shared/constants.ts` — score weights are canonical
+- `src/agent/loop.ts` — state machine; log changes here first
+- `src/agent/prompts.ts` — prompt contract; Nemotron must never get a new numeric score
+
+**Next action for Claude:**
+Standby for Codex PR / merge. Will review integration, run `npm run typecheck && npm test && npm run smoke` after each Codex merge, and update TASK_STATE.md accordingly.
+
+---
+
 ## 2026-05-16 04:00 PT — Claude — COMPLETE
 
 **Task IDs:** C-001, C-002, C-003, C-004, C-005, C-006, C-007, C-008, C-009, C-010
