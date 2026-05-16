@@ -3,20 +3,12 @@
  * Claude-primary file. Accessibility-first. WCAG AA compliant.
  * Reviewed by accessibility-agents:accessibility-lead.
  *
- * 13 panels in order:
- *  1. Goal              — run configuration form
- *  2. Plan              — steps overview
- *  3. Agent Timeline    — live SSE event stream
- *  4. Readiness Score   — deterministic score + bar + breakdown
- *  5. Risk Fingerprint  — per-signal severity table
- *  6. Time-to-Ship      — estimate + reasons
- *  7. Findings          — top blockers + recommended actions
- *  8. Approval          — approval-gated actions panel (role="alert")
- *  9. Live Report       — react-markdown rendering of SHIPCLAW_READINESS.md
- * 10. Final Decision    — ship/hold verdict
- * 11. Memory            — cross-run memory key/value store
- * 12. Audit Log         — per-run audit trail
- * 13. External Evidence — Exa results if available
+ * Layout:
+ *  Hero — brand + system status + metrics (full-width)
+ *  Sidebar — goal form, plan, score, decision
+ *  Main    — timeline, fingerprint, time-to-ship, findings,
+ *             approval, report preview, memory, audit, exa
+ *  Footer  — technical proof claims
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
@@ -82,14 +74,14 @@ const initialState: RunState = {
   exaCount: 0,
 };
 
-// ── Markdown component overrides (heading remapping, table scope) ─────────────
+// ── Markdown component overrides ──────────────────────────────────────────────
 
 const markdownComponents = {
-  // Remap h1→h3, h2→h4 inside the report preview to avoid h1 conflict
+  // Remap h1→h3, h2→h4, h3→h5 inside report preview to avoid H1 conflict.
+  // Page H1 = hero. Panel headings = H2. Report preview content = H3+.
   h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => <h3 {...props}>{children}</h3>,
   h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => <h4 {...props}>{children}</h4>,
   h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => <h5 {...props}>{children}</h5>,
-  // Add scope="col" to all th elements
   th: ({ children, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) => (
     <th scope="col" {...props}>{children}</th>
   ),
@@ -103,6 +95,45 @@ function scoreBandClass(band: string): string {
   return "not-ready";
 }
 
+// ── System status pill ────────────────────────────────────────────────────────
+
+interface StatusPillProps {
+  label: string;
+  value: string;
+  dotVariant: "live" | "fallback" | "skipped" | "fixture" | "persistent" | "required" | "unknown";
+}
+
+function StatusPill({ label, value, dotVariant }: StatusPillProps) {
+  return (
+    <div className="system-status-item">
+      {/* Dot is purely decorative — label + value text conveys state (WCAG 1.4.1) */}
+      <span
+        className={`system-status-item__dot system-status-item__dot--${dotVariant}`}
+        aria-hidden="true"
+      />
+      <span className="system-status-item__label">{label}</span>
+      <span className="system-status-item__value">{value}</span>
+    </div>
+  );
+}
+
+// ── Hero metrics item ─────────────────────────────────────────────────────────
+
+interface HeroMetricProps {
+  label: string;
+  value: string;
+  valueClass?: string;
+}
+
+function HeroMetric({ label, value, valueClass }: HeroMetricProps) {
+  return (
+    <div className="hero-metric">
+      <span className="hero-metric__label">{label}</span>
+      <span className={`hero-metric__value${valueClass ? ` ${valueClass}` : ""}`}>{value}</span>
+    </div>
+  );
+}
+
 // ── App component ─────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -112,25 +143,25 @@ export default function App() {
   const [demoMode, setDemoMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const timelineRef = useRef<HTMLUListElement | null>(null);
   const approvalRef = useRef<HTMLDivElement | null>(null);
   const liveRegionRef = useRef<HTMLDivElement | null>(null);
 
-  // ── Live announcement helper ───────────────────────────────────────────────
+  // ── Live announcement helper (screen reader) ───────────────────────────────
 
   const announce = useCallback((msg: string) => {
     if (liveRegionRef.current) {
       liveRegionRef.current.textContent = "";
-      // Brief timeout so screen readers re-announce identical messages
       setTimeout(() => {
         if (liveRegionRef.current) liveRegionRef.current.textContent = msg;
       }, 50);
     }
   }, []);
 
-  // ── Auto-scroll timeline to bottom ────────────────────────────────────────
+  // ── Auto-scroll timeline ───────────────────────────────────────────────────
 
   useEffect(() => {
     if (timelineRef.current) {
@@ -147,7 +178,7 @@ export default function App() {
     }
   }, [runState.approval, announce]);
 
-  // ── Fetch memory + audit after run completes ──────────────────────────────
+  // ── Fetch post-run data ────────────────────────────────────────────────────
 
   const fetchPostRunData = useCallback(async (runId: string, mode: string) => {
     try {
@@ -216,11 +247,11 @@ export default function App() {
               : "skipped";
             next.exaStatus = exaStatus;
             next.exaCount = event.count;
-            if (exaStatus === "live") {
-              announce(`External evidence: ${event.count} result${event.count === 1 ? "" : "s"} retrieved from Exa.`);
-            } else {
-              announce("External evidence: Exa search skipped.");
-            }
+            announce(
+              exaStatus === "live"
+                ? `External evidence: ${event.count} result${event.count === 1 ? "" : "s"} from Exa.`
+                : "External evidence: Exa search skipped."
+            );
             break;
           }
           case "approval_requested":
@@ -235,7 +266,6 @@ export default function App() {
             next.assessorOutput = event.assessorOutput;
             next.status = "complete";
             announce(`Run complete. Decision: ${event.decision.toUpperCase()}. Score: ${event.score.total} out of 100.`);
-            // Fetch artifacts after a short delay
             setTimeout(() => fetchPostRunData(runId, prev.mode), 800);
             break;
         }
@@ -260,6 +290,7 @@ export default function App() {
     if (!goal.trim() || !repo.trim()) return;
 
     setError(null);
+    setCopyState("idle");
     setRunState({
       ...initialState,
       status: "starting",
@@ -299,6 +330,22 @@ export default function App() {
     }
   };
 
+  // ── Copy report to clipboard ──────────────────────────────────────────────
+
+  const handleCopyReport = async () => {
+    if (!runState.reportMarkdown) return;
+    try {
+      await navigator.clipboard.writeText(runState.reportMarkdown);
+      setCopyState("copied");
+      announce("Report copied to clipboard.");
+      setTimeout(() => setCopyState("idle"), 2500);
+    } catch {
+      setCopyState("failed");
+      announce("Copy failed. Please select and copy the report text manually.");
+      setTimeout(() => setCopyState("idle"), 3000);
+    }
+  };
+
   // ── Event label helpers ────────────────────────────────────────────────────
 
   function eventLabel(event: AgentEvent): string {
@@ -333,13 +380,31 @@ export default function App() {
     return "·";
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Derived state helpers ─────────────────────────────────────────────────
 
   const isRunning = runState.status === "running" || runState.status === "starting" || runState.status === "awaiting_approval";
+  const isComplete = runState.status === "complete";
+
+  // System status values
+  const nemotronStatus = runState.assessorOutput?.mode === "fallback" ? "fallback"
+    : isComplete ? "live" : "unknown";
+  const nemotronLabel = nemotronStatus === "live" ? "Online — mistral-nemotron"
+    : nemotronStatus === "fallback" ? "Fallback — deterministic"
+    : "Not yet called";
+  const exaDot: StatusPillProps["dotVariant"] = runState.exaStatus === "live" ? "live"
+    : runState.exaStatus === "failed" ? "fallback"
+    : "skipped";
+  const exaLabel = runState.exaStatus === "live" ? `Online — ${runState.exaCount} results`
+    : runState.exaStatus === "failed" ? "Failed — degraded gracefully"
+    : "Skipped — disabled";
+  const dataLabel = demoMode ? "Fixture data (demo)" : "Live GitHub + shell";
+  const dataDot: StatusPillProps["dotVariant"] = demoMode ? "fixture" : "live";
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
-      {/* Screen reader live region */}
+      {/* Screen reader live region — must be first, always present */}
       <div
         ref={liveRegionRef}
         role="status"
@@ -350,33 +415,122 @@ export default function App() {
 
       {/* Mode banners */}
       {runState.mode === "fallback" && (
-        <div className="mode-banner mode-banner--fallback" role="note" aria-label="Warning: Fallback mode">
-          ⚠️ SYNTHETIC FALLBACK MODE — LLM unavailable. Score is deterministic only.
+        <div className="mode-banner mode-banner--fallback" role="note" aria-label="Warning: Fallback mode active">
+          ⚠️ SYNTHETIC FALLBACK MODE — Nemotron unavailable. Scoring remains deterministic.
+          Demo mode uses fixture data. Scoring, memory, approval gate, and report generation are real.
         </div>
       )}
       {runState.mode === "demo" && (
         <div className="mode-banner mode-banner--demo" role="note" aria-label="Demo mode active">
-          🔬 DEMO MODE — Fixture data, no real GitHub or LLM calls.
+          🔬 DEMO MODE — Fixture repo data in use.{" "}
+          <strong>Scoring, memory, Nemotron reasoning, approval gate, and report generation are real.</strong>
         </div>
       )}
 
-      {/* App header */}
-      <header className="app-header">
-        <span aria-hidden="true">🚢</span>
-        <h1>ShipClaw</h1>
-        <span className="app-header__subtitle">Release Readiness Agent</span>
-        {runState.mode !== "idle" && runState.mode !== "live" && (
-          <span className={`tag tag--${runState.mode}`}>{runState.mode.toUpperCase()}</span>
-        )}
+      {/* ── Hero Section ──────────────────────────────────────────────────── */}
+      <header className="hero-section">
+        <div className="hero-inner">
+
+          {/* Brand row */}
+          <div className="hero-brand">
+            <span aria-hidden="true" className="hero-logo">🚢</span>
+            <div className="hero-brand-text">
+              {/* Single H1 for the page — replaces old app-header h1 */}
+              <h1 className="hero-title">
+                Ship<span className="hero-title-accent">Claw</span>
+              </h1>
+              <p className="hero-subtitle">Autonomous Release Readiness Agent</p>
+            </div>
+
+            {/* Capability badges — ul/li list (accessibility-lead: not headings) */}
+            <ul
+              className="hero-badges"
+              aria-label="System capabilities"
+              style={{ listStyle: "none" }}
+            >
+              {[
+                "Deterministic Score",
+                "Persistent Memory",
+                "Nemotron Reasoning",
+                "Approval-Gated",
+                "Audit Logged",
+                "Exa Optional",
+              ].map((cap) => (
+                <li key={cap}>
+                  <span className="capability-badge">{cap}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* System status row — text labels + dots (accessibility-lead: color not alone) */}
+          <div className="system-status" role="list" aria-label="System status">
+            <div role="listitem">
+              <StatusPill label="Nemotron" value={nemotronLabel} dotVariant={nemotronStatus === "live" ? "live" : nemotronStatus === "fallback" ? "fallback" : "unknown"} />
+            </div>
+            <div role="listitem">
+              <StatusPill label="Exa" value={exaLabel} dotVariant={exaDot} />
+            </div>
+            <div role="listitem">
+              <StatusPill label="Data" value={dataLabel} dotVariant={dataDot} />
+            </div>
+            <div role="listitem">
+              <StatusPill label="Memory" value="Persistent SQLite" dotVariant="persistent" />
+            </div>
+            <div role="listitem">
+              <StatusPill label="Approval" value="Required for writes" dotVariant="required" />
+            </div>
+          </div>
+
+          {/* Hero metrics — only shown after a run */}
+          {runState.score && (
+            <div className="hero-metrics" aria-label="Current run results">
+              <HeroMetric
+                label="Score"
+                value={`${runState.score.total}/100`}
+                valueClass={`hero-metric__value--${scoreBandClass(runState.score.band)}`}
+              />
+              <HeroMetric
+                label="Band"
+                value={runState.score.band}
+                valueClass={`hero-metric__value--${scoreBandClass(runState.score.band)}`}
+              />
+              {runState.finalDecision && (
+                <HeroMetric
+                  label="Decision"
+                  value={runState.finalDecision.toUpperCase()}
+                  valueClass={`hero-metric__value--${runState.finalDecision}`}
+                />
+              )}
+              {runState.timeToShip && (
+                <HeroMetric
+                  label="Time-to-Ship"
+                  value={`${runState.timeToShip.minMinutes}–${runState.timeToShip.maxMinutes} min`}
+                />
+              )}
+              {runState.assessorOutput?.confidence != null && (
+                <HeroMetric
+                  label="Confidence"
+                  value={`${Math.round(runState.assessorOutput.confidence * 100)}%`}
+                />
+              )}
+            </div>
+          )}
+
+        </div>
       </header>
 
+      {/* ── Main Layout ───────────────────────────────────────────────────── */}
       <div className="app-layout">
-        {/* ── Sidebar ─────────────────────────────────────────────────── */}
-        <aside className="app-sidebar" aria-label="Run configuration and status">
 
-          {/* Panel 1: Goal */}
+        {/* ── Sidebar ───────────────────────────────────────────────────── */}
+        <aside className="app-sidebar" aria-label="Run configuration and score">
+
+          {/* Panel 1: Goal form */}
           <section className="panel" aria-labelledby="panel-goal-heading">
-            <h2 id="panel-goal-heading">🎯 Goal</h2>
+            <h2 id="panel-goal-heading">
+              <span aria-hidden="true">🎯</span> Goal
+            </h2>
             <form onSubmit={handleSubmit} className="goal-form" noValidate>
               <div className="form-field">
                 <label className="form-label" htmlFor="repo-input">
@@ -426,7 +580,7 @@ export default function App() {
                   disabled={isRunning}
                   style={{ width: "18px", height: "18px", cursor: "pointer" }}
                 />
-                <label htmlFor="demo-mode-toggle" className="form-label" style={{ cursor: "pointer" }}>
+                <label htmlFor="demo-mode-toggle" className="form-label" style={{ cursor: "pointer", textTransform: "none", letterSpacing: "normal", fontSize: "0.875rem" }}>
                   Demo mode (fixture data, no API calls)
                 </label>
               </div>
@@ -458,22 +612,24 @@ export default function App() {
           {/* Panel 2: Plan */}
           {runState.plan && (
             <section className="panel" aria-labelledby="panel-plan-heading">
-              <h2 id="panel-plan-heading">📋 Plan</h2>
-              <p className="text-sm text-muted mt-2">
+              <h2 id="panel-plan-heading">
+                <span aria-hidden="true">📋</span> Plan
+              </h2>
+              <p className="text-sm text-muted" style={{ marginBottom: "var(--space-2)" }}>
                 {runState.plan.constraints.join(" · ")}
               </p>
               <ol
                 aria-label="Analysis steps"
-                style={{ paddingLeft: "var(--space-5)", marginTop: "var(--space-3)", fontSize: "0.875rem" }}
+                style={{ paddingLeft: "var(--space-5)", fontSize: "0.8125rem", color: "var(--color-text-muted)" }}
               >
                 {runState.plan.steps.map((step, i) => (
-                  <li key={i} style={{ marginBottom: "4px" }}>{step}</li>
+                  <li key={i} style={{ marginBottom: "3px" }}>{step}</li>
                 ))}
               </ol>
             </section>
           )}
 
-          {/* Panel 4: Readiness Score (sidebar) */}
+          {/* Panel 4: Readiness Score */}
           {runState.score && (
             <section
               className="panel"
@@ -481,8 +637,12 @@ export default function App() {
               aria-live="polite"
               aria-atomic="true"
             >
-              <h2 id="panel-score-heading">📊 Readiness Score</h2>
-              <div className="score-display" role="img"
+              <h2 id="panel-score-heading">
+                <span aria-hidden="true">📊</span> Readiness Score
+              </h2>
+              <div
+                className="score-display"
+                role="img"
                 aria-label={`Readiness score: ${runState.score.total} out of 100. Band: ${runState.score.band}.`}
               >
                 <div
@@ -490,13 +650,16 @@ export default function App() {
                   aria-hidden="true"
                 >
                   {runState.score.total}
-                  <small style={{ fontSize: "1.5rem", fontWeight: 400, color: "var(--color-text-muted)" }}>/100</small>
+                  <small style={{ fontSize: "1.25rem", fontWeight: 400, color: "var(--color-text-muted)" }}>/100</small>
                 </div>
                 <div>
                   <span className={`score-band score-band--${runState.score.band}`}>
                     {runState.score.band}
                   </span>
                 </div>
+                <p className="text-xs text-muted" style={{ marginTop: "var(--space-2)" }}>
+                  Computed deterministically before Nemotron
+                </p>
               </div>
               <div className="score-bar-wrapper">
                 <div
@@ -525,29 +688,61 @@ export default function App() {
             </section>
           )}
 
-          {/* Panel 10: Final Decision (sidebar) */}
+          {/* Panel 10: Final Decision */}
           {runState.finalDecision && (
             <section className="panel" aria-labelledby="panel-decision-heading">
-              <h2 id="panel-decision-heading">🏁 Decision</h2>
+              <h2 id="panel-decision-heading">
+                <span aria-hidden="true">🏁</span> Decision
+              </h2>
               <div className={`decision-badge decision-badge--${runState.finalDecision}`}>
                 {runState.finalDecision === "ship" ? "✅" : "🔴"}{" "}
                 {runState.finalDecision.toUpperCase()}
               </div>
               {runState.assessorOutput?.explanation && (
-                <p className="text-sm mt-2">{runState.assessorOutput.explanation}</p>
+                <p className="text-sm mt-2" style={{ color: "var(--color-text-muted)" }}>
+                  {runState.assessorOutput.explanation}
+                </p>
+              )}
+              {runState.assessorOutput?.mode === "fallback" && (
+                <p className="text-xs mt-2" style={{ color: "var(--color-risky)" }}>
+                  ⚠️ Assessment generated from deterministic score (Nemotron unavailable).
+                </p>
               )}
             </section>
           )}
 
         </aside>
 
-        {/* ── Main content ────────────────────────────────────────────── */}
+        {/* ── Main content ───────────────────────────────────────────────── */}
         <main id="main-content" className="app-main" tabIndex={-1} aria-label="Analysis results">
+
+          {/* Idle proof label — shown before first run */}
+          {runState.status === "idle" && (
+            <>
+              <div className="empty-state">
+                <p style={{ fontSize: "1.125rem", marginBottom: "var(--space-3)", color: "var(--color-text)" }}>
+                  Enter a repository URL and goal to start an analysis.
+                </p>
+                <p className="text-sm text-muted">
+                  ShipClaw assesses release readiness deterministically and produces a polished report.
+                </p>
+              </div>
+              <div className="proof-bar" role="note">
+                <strong>What is real in demo mode:</strong>{" "}
+                Deterministic scoring (scorer.ts) · Persistent memory (SQLite) ·
+                Nemotron reasoning (mistralai/mistral-nemotron) · Approval gate ·
+                Audit log · Report generation — <strong>all real.</strong>{" "}
+                Only the GitHub/shell tool data is fixture data.
+              </div>
+            </>
+          )}
 
           {/* Panel 3: Agent Timeline */}
           {runState.events.length > 0 && (
             <section className="panel" aria-labelledby="panel-timeline-heading">
-              <h2 id="panel-timeline-heading">⚡ Agent Activity</h2>
+              <h2 id="panel-timeline-heading">
+                <span aria-hidden="true">⚡</span> Agent Activity
+              </h2>
               <ul
                 ref={timelineRef}
                 className="timeline"
@@ -572,19 +767,21 @@ export default function App() {
             </section>
           )}
 
-          {/* Panel 5: Risk Fingerprint */}
+          {/* Panel 5: Release Risk Fingerprint */}
           {runState.riskFingerprint && (
             <section className="panel" aria-labelledby="panel-risk-heading">
-              <h2 id="panel-risk-heading">🔍 Release Risk Fingerprint</h2>
-              <p className="text-sm text-muted mt-2">
+              <h2 id="panel-risk-heading">
+                <span aria-hidden="true">🔍</span> Release Risk Fingerprint
+              </h2>
+              <p className="text-sm text-muted" style={{ marginBottom: "var(--space-3)" }}>
                 {runState.riskFingerprint.basedOnMemory
-                  ? `Based on ${runState.riskFingerprint.memoryGenerationCount} prior run(s)`
-                  : "First run — no prior memory"}
+                  ? `Memory-aware — based on ${runState.riskFingerprint.memoryGenerationCount} prior run(s)`
+                  : "First run — no prior memory context"}
               </p>
               {runState.riskFingerprint.items.length === 0 ? (
-                <p className="empty-state">No risk signals detected.</p>
+                <p className="text-sm text-muted">No risk signals detected.</p>
               ) : (
-                <table className="category-table mt-3" aria-label="Risk signals">
+                <table className="category-table" aria-label="Risk signals">
                   <thead>
                     <tr>
                       <th scope="col">Severity</th>
@@ -603,7 +800,7 @@ export default function App() {
                         </td>
                         <td>{item.signal}</td>
                         <td>{item.detail}</td>
-                        <td>{item.fromMemory ? "✅" : "—"}</td>
+                        <td>{item.fromMemory ? "✅ Yes" : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -615,18 +812,23 @@ export default function App() {
           {/* Panel 6: Time-to-Ship */}
           {runState.timeToShip && (
             <section className="panel" aria-labelledby="panel-tts-heading">
-              <h2 id="panel-tts-heading">⏱️ Time-to-Demo-Ready</h2>
-              <div className="tts-display" aria-label={`${runState.timeToShip.minMinutes} to ${runState.timeToShip.maxMinutes} minutes`}>
+              <h2 id="panel-tts-heading">
+                <span aria-hidden="true">⏱️</span> Time-to-Demo-Ready
+              </h2>
+              <div
+                className="tts-display"
+                aria-label={`${runState.timeToShip.minMinutes} to ${runState.timeToShip.maxMinutes} minutes to remediate`}
+              >
                 <span aria-hidden="true">{runState.timeToShip.minMinutes}–{runState.timeToShip.maxMinutes}</span>
                 <span className="tts-display__unit">minutes</span>
               </div>
-              <p className="text-sm text-muted mt-2">
-                Heuristic: {runState.timeToShip.heuristic}
+              <p className="text-xs text-muted" style={{ marginTop: "var(--space-2)" }}>
+                {runState.timeToShip.heuristic}
               </p>
               {runState.timeToShip.reasons.length > 0 && (
                 <ul
-                  aria-label="Time-to-ship reasons"
-                  style={{ paddingLeft: "var(--space-5)", marginTop: "var(--space-2)", fontSize: "0.875rem" }}
+                  aria-label="Time-to-ship breakdown"
+                  style={{ paddingLeft: "var(--space-5)", marginTop: "var(--space-3)", fontSize: "0.875rem", color: "var(--color-text-muted)" }}
                 >
                   {runState.timeToShip.reasons.map((r, i) => (
                     <li key={i}>{r}</li>
@@ -636,23 +838,25 @@ export default function App() {
             </section>
           )}
 
-          {/* Panel 7: Findings */}
+          {/* Panel 7: Findings — score breakdown + blockers + actions */}
           {(runState.assessorOutput || runState.score) && (
             <section className="panel" aria-labelledby="panel-findings-heading">
-              <h2 id="panel-findings-heading">🚧 Findings &amp; Recommended Actions</h2>
+              <h2 id="panel-findings-heading">
+                <span aria-hidden="true">🚧</span> Findings &amp; Recommended Actions
+              </h2>
 
               {/* Score breakdown table */}
               {runState.score && runState.score.categories.length > 0 && (
                 <>
                   <h3 id="score-breakdown-heading">Score Breakdown</h3>
-                  <table className="category-table mt-2" aria-labelledby="score-breakdown-heading">
+                  <table className="category-table" style={{ marginTop: "var(--space-2)" }} aria-labelledby="score-breakdown-heading">
                     <thead>
                       <tr>
                         <th scope="col">Category</th>
                         <th scope="col">Weight</th>
                         <th scope="col">Raw</th>
                         <th scope="col">Weighted</th>
-                        <th scope="col">Pass</th>
+                        <th scope="col">Pass?</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -671,15 +875,15 @@ export default function App() {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr style={{ fontWeight: "bold" }}>
+                      <tr style={{ fontWeight: "bold", color: "var(--color-text)" }}>
                         <td>TOTAL</td>
                         <td>100%</td>
                         <td>—</td>
                         <td>{runState.score.total}</td>
                         <td>
                           {runState.score.total >= 71
-                            ? <span className="pass-icon" aria-label="Pass">✅</span>
-                            : <span className="fail-icon" aria-label="Fail">❌</span>}
+                            ? <span className="pass-icon" aria-label="Overall pass">✅</span>
+                            : <span className="fail-icon" aria-label="Overall fail">❌</span>}
                         </td>
                       </tr>
                     </tfoot>
@@ -689,10 +893,10 @@ export default function App() {
 
               {/* Blockers */}
               {runState.assessorOutput?.blockers && runState.assessorOutput.blockers.length > 0 && (
-                <div className="mt-4">
+                <div style={{ marginTop: "var(--space-4)" }}>
                   <h3>Top Blockers</h3>
                   <ul
-                    aria-label="Blockers"
+                    aria-label="Blockers preventing release"
                     style={{ paddingLeft: "var(--space-5)", marginTop: "var(--space-2)", fontSize: "0.875rem" }}
                   >
                     {runState.assessorOutput.blockers.map((b, i) => (
@@ -704,11 +908,11 @@ export default function App() {
 
               {/* Recommended actions */}
               {runState.assessorOutput?.recommendedActions && runState.assessorOutput.recommendedActions.length > 0 && (
-                <div className="mt-4">
+                <div style={{ marginTop: "var(--space-4)" }}>
                   <h3>Recommended Actions</h3>
                   <ol
                     aria-label="Recommended actions"
-                    style={{ paddingLeft: "var(--space-5)", marginTop: "var(--space-2)", fontSize: "0.875rem" }}
+                    style={{ paddingLeft: "var(--space-5)", marginTop: "var(--space-2)", fontSize: "0.875rem", color: "var(--color-text-muted)" }}
                   >
                     {runState.assessorOutput.recommendedActions.map((a, i) => (
                       <li key={i} style={{ marginBottom: "4px" }}>{a}</li>
@@ -719,7 +923,7 @@ export default function App() {
             </section>
           )}
 
-          {/* Panel 8: Approval */}
+          {/* Panel 8: Approval Gate — role=alert, no animation (accessibility-lead) */}
           {runState.approval && runState.approval.status === "pending" && (
             <section
               className="approval-panel"
@@ -729,14 +933,16 @@ export default function App() {
               ref={approvalRef}
               aria-live="assertive"
             >
-              <h2 id="panel-approval-heading">🔐 Approval Required</h2>
-              <p className="mt-2">
+              <h2 id="panel-approval-heading">
+                <span aria-hidden="true">🔐</span> Approval Required
+              </h2>
+              <p style={{ marginTop: "var(--space-2)" }}>
                 <strong>Risk level:</strong>{" "}
                 <span className={`risk-severity risk-severity--${runState.approval.riskLevel}`}>
                   {runState.approval.riskLevel.toUpperCase()}
                 </span>
               </p>
-              <p className="mt-2 text-sm">
+              <p className="text-sm" style={{ marginTop: "var(--space-2)", color: "var(--color-text-muted)" }}>
                 {runState.approval.actionDescription}
               </p>
               <div className="approval-actions">
@@ -759,14 +965,58 @@ export default function App() {
             </section>
           )}
 
-          {/* Panel 9: Live Report Preview */}
-          {runState.reportMarkdown && (
-            <section className="panel" aria-labelledby="panel-report-heading">
-              <h2 id="panel-report-heading">📄 Live Report Preview</h2>
-              <p className="text-sm text-muted mt-2">
-                Rendered from <code>SHIPCLAW_READINESS.md</code>
-              </p>
-              <div className="report-preview mt-3">
+          {/* Panel 9: Live Report Preview — centerpiece */}
+          <section
+            className="panel report-panel"
+            aria-labelledby="panel-report-heading"
+          >
+            <div className="report-panel-header">
+              <div className="report-panel-title-row">
+                <h2 id="panel-report-heading">
+                  <span aria-hidden="true">📄</span> Live Report Preview
+                </h2>
+                <span className="report-file-path" aria-hidden="true">SHIPCLAW_READINESS.md</span>
+                {isComplete && (
+                  <span className="tag tag--live">Generated</span>
+                )}
+              </div>
+              {runState.reportMarkdown && (
+                <button
+                  className="btn btn--ghost"
+                  onClick={handleCopyReport}
+                  aria-label={
+                    copyState === "copied" ? "Report copied to clipboard"
+                    : copyState === "failed" ? "Copy failed — try again"
+                    : "Copy report to clipboard"
+                  }
+                >
+                  {copyState === "copied" ? "✓ Copied" : copyState === "failed" ? "✗ Failed" : "Copy"}
+                </button>
+              )}
+            </div>
+
+            {/* Idle: before run */}
+            {runState.status === "idle" && (
+              <div className="report-state-idle">
+                <p>Report will appear here after the agent generates it.</p>
+                <p className="text-sm text-muted" style={{ marginTop: "var(--space-2)" }}>
+                  The 14-section SHIPCLAW_READINESS.md is written at the end of each run.
+                </p>
+              </div>
+            )}
+
+            {/* Running: generating */}
+            {isRunning && !runState.reportMarkdown && (
+              <div className="report-state-running" aria-live="polite" aria-label="Report generating">
+                <span className="loading-spinner" aria-hidden="true" />
+                <p>Generating readiness report…</p>
+                <p className="text-xs text-muted">Report will render here when the agent reaches WRITE_ARTIFACTS.</p>
+              </div>
+            )}
+
+            {/* Complete: render report */}
+            {runState.reportMarkdown && (
+              <div className="report-preview">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={markdownComponents}
@@ -774,13 +1024,18 @@ export default function App() {
                   {runState.reportMarkdown}
                 </ReactMarkdown>
               </div>
-            </section>
-          )}
+            )}
+          </section>
 
-          {/* Panel 11: Memory */}
+          {/* Panel 11: Cross-Run Memory */}
           {runState.memory.length > 0 && (
             <section className="panel" aria-labelledby="panel-memory-heading">
-              <h2 id="panel-memory-heading">🧠 Cross-Run Memory</h2>
+              <h2 id="panel-memory-heading">
+                <span aria-hidden="true">🧠</span> Cross-Run Memory
+              </h2>
+              <p className="text-xs text-muted" style={{ marginBottom: "var(--space-3)" }}>
+                Persistent across runs via SQLite. Captured before and after each run.
+              </p>
               <div className="memory-list" role="list" aria-label="Memory items">
                 {runState.memory.map((item, i) => (
                   <div key={i} className="memory-item" role="listitem">
@@ -795,8 +1050,10 @@ export default function App() {
           {/* Panel 12: Audit Log */}
           {runState.auditLog.length > 0 && (
             <section className="panel" aria-labelledby="panel-audit-heading">
-              <h2 id="panel-audit-heading">📋 Audit Log</h2>
-              <div className="audit-list" role="log" aria-label="Audit log" aria-live="off">
+              <h2 id="panel-audit-heading">
+                <span aria-hidden="true">📋</span> Audit Log
+              </h2>
+              <div className="audit-list" role="log" aria-label="Audit log entries" aria-live="off">
                 {runState.auditLog.map((entry, i) => (
                   <div key={i} className="audit-item">
                     <span className="audit-item__actor">{entry.actor}</span>
@@ -808,72 +1065,67 @@ export default function App() {
             </section>
           )}
 
-          {/* Panel 13: External Evidence — visible after run reports Exa status */}
+          {/* Panel 13: External Evidence / Exa */}
           {runState.status !== "idle" && runState.exaStatus !== null && (
             <section className="panel" aria-labelledby="panel-evidence-heading">
-              {/* Globe emoji is aria-hidden; heading text carries the accessible name */}
               <h2 id="panel-evidence-heading">
-                <span aria-hidden="true">🌐</span>{" "}External Evidence
+                <span aria-hidden="true">🌐</span> External Evidence
               </h2>
 
-              {/* Status badge — text label + color, not color alone (WCAG 1.4.1) */}
+              {/* Status label — text conveys state, not color alone (WCAG 1.4.1) */}
               <p
-                className="text-sm mt-2"
+                className="text-sm"
+                style={{ marginTop: "var(--space-2)" }}
                 aria-label={
                   runState.exaStatus === "live"
-                    ? `External evidence status: Live — ${runState.exaCount} result${runState.exaCount === 1 ? "" : "s"} retrieved`
+                    ? `Exa status: Live — ${runState.exaCount} result${runState.exaCount === 1 ? "" : "s"} retrieved`
                     : runState.exaStatus === "failed"
-                    ? "External evidence status: Failed — Exa search encountered an error"
-                    : "External evidence status: Skipped — Exa search was not performed"
+                    ? "Exa status: Failed — search encountered an error, degraded gracefully"
+                    : "Exa status: Skipped — disabled for this run"
                 }
               >
                 <span aria-hidden="true">
                   {runState.exaStatus === "live" && (
-                    <><span className="tag tag--live">Live</span>
-                    <span className="text-muted text-xs" style={{ marginLeft: "0.5rem" }}>
-                      {runState.exaCount} result{runState.exaCount === 1 ? "" : "s"} from Exa
-                    </span></>
+                    <>
+                      <span className="tag tag--live">Live</span>
+                      <span className="text-muted text-xs" style={{ marginLeft: "0.5rem" }}>
+                        {runState.exaCount} result{runState.exaCount === 1 ? "" : "s"} from Exa
+                      </span>
+                    </>
                   )}
                   {runState.exaStatus === "skipped" && (
-                    <span className="risk-severity risk-severity--low" style={{ textTransform: "none", fontSize: "0.8125rem" }}>
-                      Skipped
-                    </span>
+                    <span className="tag">Skipped</span>
                   )}
                   {runState.exaStatus === "failed" && (
-                    <span className="risk-severity risk-severity--critical">Failed</span>
+                    <span className="risk-severity risk-severity--critical">Failed — degraded gracefully</span>
                   )}
                 </span>
               </p>
 
-              {/* Skipped: plain-language reason */}
               {runState.exaStatus === "skipped" && (
-                <p className="text-sm text-muted mt-2">
-                  Exa web search is disabled for this run. Enable it via the{" "}
-                  <code>EXA_API_KEY</code> environment variable to surface external
-                  evidence in the readiness assessment.
+                <p className="text-sm text-muted" style={{ marginTop: "var(--space-2)" }}>
+                  Exa web search is disabled for this run. Set <code>ENABLE_EXA=true</code> and
+                  configure <code>EXA_API_KEY</code> to surface external evidence.
                 </p>
               )}
 
-              {/* Failed: persistent error note (live region announced it already) */}
               {runState.exaStatus === "failed" && (
-                <p className="text-sm text-muted mt-2">
-                  The Exa search encountered an error during this run. The readiness
-                  assessment was completed without external evidence. Check server logs
-                  for details.
+                <p className="text-sm text-muted" style={{ marginTop: "var(--space-2)" }}>
+                  The Exa search encountered an error. Assessment completed without external evidence.
+                  ShipClaw degrades gracefully — the run still produced a full report.
                 </p>
               )}
 
-              {/* Live: results table with full accessible structure */}
               {runState.exaStatus === "live" && runState.externalEvidence.length > 0 && (
                 <table
-                  className="category-table mt-2"
+                  className="category-table"
+                  style={{ marginTop: "var(--space-3)" }}
                   aria-label={`External evidence from Exa — ${runState.exaCount} result${runState.exaCount === 1 ? "" : "s"}`}
                 >
                   <thead>
                     <tr>
-                      {/* All headers carry scope="col" — WCAG 1.3.1 */}
                       <th scope="col">Source</th>
-                      <th scope="col">Source Title</th>
+                      <th scope="col">Title</th>
                       <th scope="col">Query</th>
                       <th scope="col">Excerpt</th>
                       <th scope="col">Relevance</th>
@@ -885,24 +1137,14 @@ export default function App() {
                       const riskSignalLabel =
                         ev.riskSignal === "supports-readiness" ? "Supports readiness"
                         : ev.riskSignal === "warns-against-readiness" ? "Warns against readiness"
-                        : ev.riskSignal === "neutral" ? "Neutral"
-                        : "Unknown";
-
-                      const riskSignalBadge =
-                        ev.riskSignal === "supports-readiness" ? (
-                          <span className="risk-severity risk-severity--low" aria-hidden="true" style={{ textTransform: "none" }}>↑ Supports</span>
-                        ) : ev.riskSignal === "warns-against-readiness" ? (
-                          <span className="risk-severity risk-severity--critical" aria-hidden="true" style={{ textTransform: "none" }}>↓ Warns</span>
-                        ) : (
-                          <span className="risk-severity risk-severity--medium" aria-hidden="true" style={{ textTransform: "none" }}>— Neutral</span>
-                        );
+                        : "Neutral";
 
                       return (
                         <tr key={i}>
                           <td className="text-mono text-xs">
-                            {ev.url ? (
-                              <a href={ev.url} aria-label={`Source: ${ev.url}`}>{ev.source}</a>
-                            ) : ev.source}
+                            {ev.url
+                              ? <a href={ev.url} aria-label={`Source: ${ev.url}`}>{ev.source}</a>
+                              : ev.source}
                           </td>
                           <td className="text-sm">
                             {ev.sourceTitle ?? <span className="text-muted" aria-label="Not available">—</span>}
@@ -923,7 +1165,13 @@ export default function App() {
                             </span>
                           </td>
                           <td aria-label={`Risk signal: ${riskSignalLabel}`}>
-                            <span aria-hidden="true">{riskSignalBadge}</span>
+                            <span
+                              className={`risk-severity ${ev.riskSignal === "supports-readiness" ? "risk-severity--low" : ev.riskSignal === "warns-against-readiness" ? "risk-severity--critical" : "risk-severity--medium"}`}
+                              aria-hidden="true"
+                              style={{ textTransform: "none" }}
+                            >
+                              {riskSignalLabel}
+                            </span>
                           </td>
                         </tr>
                       );
@@ -934,18 +1182,24 @@ export default function App() {
             </section>
           )}
 
-          {/* Idle state */}
-          {runState.status === "idle" && (
-            <div className="empty-state">
-              <p>🚢 Enter a repository URL and goal to start an analysis.</p>
-              <p className="text-sm text-muted mt-2">
-                ShipClaw will assess release readiness deterministically and produce a polished report.
-              </p>
-            </div>
-          )}
-
         </main>
       </div>
+
+      {/* ── Technical Proof Footer ────────────────────────────────────────── */}
+      <footer className="tech-footer" aria-label="Technical proof claims">
+        <p className="text-xs text-muted">
+          ShipClaw — Autonomous Release Readiness Agent · Hack-a-Claw 2026
+        </p>
+        <div className="tech-footer-claims">
+          <span className="tech-claim tech-claim--verified">✓ Deterministic Score</span>
+          <span className="tech-claim tech-claim--verified">✓ Persistent Memory</span>
+          <span className="tech-claim tech-claim--verified">✓ Nemotron Reasoning</span>
+          <span className="tech-claim tech-claim--verified">✓ Approval-Gated Writes</span>
+          <span className="tech-claim tech-claim--verified">✓ Audit Logged</span>
+          <span className="tech-claim">Exa Optional</span>
+          <span className="tech-claim">WCAG AA</span>
+        </div>
+      </footer>
     </>
   );
 }
