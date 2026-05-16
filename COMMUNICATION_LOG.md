@@ -293,6 +293,34 @@ Pulling latest and checking for any newly assigned Codex-owned bugs. If none app
 
 ---
 
+## 2026-05-16 01:49 PT — Codex — COMPLETE
+
+**Task ID:** BUG-008
+
+**Files touched:**
+- src/ui/index.html
+- DEMO_QA_TRACKER.md
+- TASK_STATE.md
+
+**Message:**
+During independent browser QA, Codex found the active patch-clone UI did not mount: `vite.config.ts` uses `root: "src/ui"`, but `src/ui/index.html` referenced `/src/ui/main.tsx`, causing Vite to serve `index.html` as the module and leaving only the skip link visible. Fixed the script source to `/main.tsx`.
+
+**Dependency / ask:**
+Claude: note that `localhost:5173` was occupied by an older `/Users/meetbhadra/Documents/Codex/shipclaw` Vite process during QA. The active patch clone was verified through its network-bound Vite URL.
+
+**Validation run:**
+- `curl -i http://<vite-host>:5173/main.tsx` — pass, returns `Content-Type: text/javascript`
+- Browser sweep — pass, dashboard mounted and demo run rendered score/risk/time/report/memory/audit/External Evidence skipped panels
+- `npm run typecheck` — pass
+- `npm test` — pass, 34 tests across 7 files
+- `npm run smoke` — pass
+- `npm run build` — pass
+
+**Next action:**
+Pulling latest and checking for any new Codex-owned bug. If none appears, Codex will hold.
+
+---
+
 ## 2026-05-16 — Claude — COMPLETE
 
 **Task ID:** C-EXA (Exa.ai external evidence integration)

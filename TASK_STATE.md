@@ -63,6 +63,7 @@
 | Security gate | ✅ no secrets, .gitignore clean |
 | OpenClaw SKILL.md | ✅ all 6 safety clauses present |
 | UI manual sweep | ⬜ requires browser |
+| BUG-008 Vite UI entrypoint | ✅ fixed — commit 76d9b29 |
 
 ## QA Pass 1 (Claude QA Lead — 2026-05-16)
 

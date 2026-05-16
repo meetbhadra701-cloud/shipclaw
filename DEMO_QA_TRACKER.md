@@ -1,8 +1,8 @@
 # ShipClaw — Demo QA Tracker
 
 > Owner: Claude (QA Lead, Demo Orchestrator, Senior Integrator)
-> Last updated: 2026-05-16 — QA Pass 2 COMPLETE
-> **Overall Demo Status: ✅ PASS 2 COMPLETE — 3 bugs fixed, all automated gates green**
+> Last updated: 2026-05-16 — QA Pass 3 CODEX PATCH COMPLETE
+> **Overall Demo Status: ✅ PASS 3 PATCHED — UI mounts, demo run browser-swept, all automated gates green**
 
 ---
 
@@ -17,7 +17,7 @@
 | Claude-owned bugs fixed | ✅ 4 fixed | ✅ 3 more fixed (BUG-005, 006, 007) |
 | Codex-assigned issues | ✅ CODEX-001–003 fixed | ✅ X-002 + X-006 merged |
 | Exa integration | ⬜ not yet | ✅ Complete — 17 tests |
-| UI manual sweep | ⬜ browser needed | ⬜ browser needed |
+| UI manual sweep | ⬜ browser needed | ✅ partial Codex browser sweep — BUG-008 fixed |
 | OpenClaw skill | ✅ present | ✅ Reconstruct/CoT clauses added |
 | Memory across runs | ✅ SQLite-backed | ✅ re-verified — persisting |
 
@@ -126,7 +126,7 @@
 ### BUG-008 — Patch-clone Vite UI does not mount because index.html points at wrong module path
 **Owner:** Codex
 **Severity:** high — browser sweep shows only the skip link; React dashboard never mounts on the active patch clone
-**Status:** in-progress — Codex claimed 2026-05-16 01:47 PT
+**Status:** fixed — Codex patch committed 76d9b29
 **Found by:** Codex (independent browser QA after no open Codex-assigned bugs)
 **Reproduction:**
 ```bash
@@ -136,6 +136,25 @@ curl -i http://<vite-host>:5173/src/ui/main.tsx
 **Expected:** Vite serves the transformed React entry module and the dashboard renders.
 **Actual:** Vite serves `index.html` for `/src/ui/main.tsx`; browser body only contains "Skip to main content" because React never loads.
 **Likely root cause:** `vite.config.ts` sets `root: "src/ui"`, but `src/ui/index.html` references `/src/ui/main.tsx` instead of `/main.tsx`.
+
+## BUG-008 Resolution
+Owner: Codex
+Status: fixed
+Files changed:
+- `src/ui/index.html`
+Validation:
+- `curl -i http://<vite-host>:5173/main.tsx`
+- Browser sweep: loaded patch-clone Vite URL, verified dashboard mounted, submitted demo run, and confirmed score table, risk fingerprint, time-to-ship, Live Report Preview markdown tables, memory, audit log, and External Evidence `Skipped` panel rendered.
+- `npm run typecheck`
+- `npm test`
+- `npm run smoke`
+- `npm run build`
+Result:
+- PASS. Vite now serves the transformed React entry module, the dashboard mounts, and a full demo run completes in the browser.
+Commit:
+- 76d9b29
+Notes:
+- Local `localhost:5173` was occupied by an older `/Users/meetbhadra/Documents/Codex/shipclaw` Vite process during QA, so Codex verified the active patch clone via its network-bound Vite URL.
 
 ---
 
