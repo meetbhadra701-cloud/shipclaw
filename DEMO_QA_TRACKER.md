@@ -15,10 +15,10 @@
 | API endpoints | ✅ All 9 routes functioning |
 | Report content | ✅ All 14 required sections present |
 | Claude-owned bugs fixed | ✅ 4 bugs fixed this pass |
-| Codex-assigned issues | ⚠️ 3 open (non-blockers for demo) |
+| Codex-assigned issues | ⚠️ 1 open (non-blocker for demo) |
 | UI manual sweep | ⬜ Requires user with browser |
 | OpenClaw skill | ✅ SKILL.md present and correct |
-| Memory across runs (CLI) | ⚠️ Does not persist (InMemoryDb; expected — use server for demo) |
+| Memory across runs (CLI) | ✅ Persists via SQLite-backed storage |
 
 ---
 
@@ -151,7 +151,7 @@ Notes:
 ### CODEX-002 — Scorer produces only [SYNTHETIC] evidence labels in demo mode
 **Owner:** Codex (X-002 — real weighted scorer)  
 **Severity:** low for demo (it's labeled synthetic) — medium for live mode  
-**Status:** in-progress — Codex claimed 2026-05-15 22:13 PT  
+**Status:** fixed — Codex patch committed 69b2ec7  
 **Reproduction:**
 ```bash
 cat runs/<id>/SHIPCLAW_READINESS.md | grep SYNTHETIC
@@ -161,6 +161,26 @@ cat runs/<id>/SHIPCLAW_READINESS.md | grep SYNTHETIC
 **Notes:** The stub in `src/agent/scorer.ts` uses `[SYNTHETIC]` labels. Codex X-002 should map `Observation[]` inputs to real category scores and evidence strings. Use `SCORE_WEIGHTS` from `src/shared/constants.ts`.  
 
 **Codex progress note:** Claimed for patching after CODEX-001. First pass will inspect `calculateReadinessScore`, observation shapes, fixtures, and current scorer tests before editing.
+
+## CODEX-002 Resolution
+Owner: Codex
+Status: fixed
+Files changed:
+- `src/agent/scorer.ts`
+- `src/agent/scorer.test.ts`
+Validation:
+- `npm test -- src/agent/scorer.test.ts`
+- `npm run typecheck`
+- `npm test`
+- `npm run smoke`
+- `DEMO_MODE=true ALLOW_LLM_FALLBACK=true npm run agent:run -- --repo fixtures/demo --goal "Check demo readiness" --demo --auto-approve-local`
+- `grep -R "\[SYNTHETIC\]" -n runs/FmPL2fhSGuaj/SHIPCLAW_READINESS.md || true`
+Result:
+- PASS. Scorer now maps `Observation[]` into deterministic category scores with evidence strings; generated readiness report contains no `[SYNTHETIC]` evidence labels.
+Commit:
+- 69b2ec7
+Notes:
+- Count-like observations now use readiness mappings instead of raw passthrough numbers, so signals like `test_file_count=4` and `open_issues=3` produce calibrated evidence scores.
 
 ---
 
@@ -238,9 +258,8 @@ Run `npm run dev` → http://localhost:5173
 - All 13 panels
 
 **Known limitations to acknowledge in demo:**
-1. Score evidence says `[SYNTHETIC]` — expected in demo mode, labels it clearly
-2. Memory doesn't persist if server restarts (InMemoryDb) — start server once, run multiple times
-3. No real GitHub data in demo — fixture data only
+1. No real GitHub data in demo — fixture data only
+2. Live API validation still requires explicit approval and keys
 
 **Would be RED if:** `npm run typecheck` or `npm run smoke` failed, or API endpoints returned wrong shapes. All pass. ✅
 

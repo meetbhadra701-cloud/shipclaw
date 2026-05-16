@@ -29,7 +29,7 @@
 |---|---|---|---|
 | X-000 | Fixture scaffolding | 🟡 needs-review | Claude created fixtures/demo/repo_bundle.json and scan_result.json as stubs |
 | X-001 | SqliteDb — IDb implementation against schema.sql | ✅ complete | Commit 8266937. Uses Node 24 `node:sqlite`; global memory persists across CLI processes. |
-| X-002 | Scorer — real weighted algorithm | 📋 todo | See SCORE_WEIGHTS in src/shared/constants.ts. Stub exists and passes smoke. |
+| X-002 | Scorer — real weighted algorithm | ✅ complete | Commit 69b2ec7. Uses SCORE_WEIGHTS and maps Observation[] to deterministic evidence without `[SYNTHETIC]` labels. |
 | X-003 | RiskFingerprint — memory-aware implementation | 📋 todo | Stub exists. Must use memorySnapshot.items from IDb. |
 | X-004 | TimeToShip — real MINUTES_PER_* heuristic | 📋 todo | Stub exists. Use MINUTES_PER_CRITICAL, MINUTES_PER_HIGH, etc. from constants.ts |
 | X-005 | GitHub/Repo tools — real Octokit + simple-git | 📋 todo | Stubs exist in src/tools/. Demo mode reads fixtures/. |
@@ -60,8 +60,8 @@
 | BUG-002 Finished: — | ✅ fixed |
 | BUG-003 score band arrow | ✅ fixed |
 | BUG-004 1-byte jsonl | ✅ fixed |
-| CODEX-001 SqliteDb | ⚠️ open — assigned to Codex |
-| CODEX-002 real scorer evidence | ⚠️ open — assigned to Codex |
+| CODEX-001 SqliteDb | ✅ fixed — commit 8266937 |
+| CODEX-002 real scorer evidence | ✅ fixed — commit 69b2ec7 |
 | CODEX-003 test coverage | ⚠️ open — assigned to Codex |
 | UI manual sweep | ⬜ requires browser |
 

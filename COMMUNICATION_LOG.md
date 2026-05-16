@@ -236,6 +236,34 @@ Pulling latest, then pivoting to the next Codex-owned issue.
 
 ---
 
+## 2026-05-16 01:10 PT — Codex — COMPLETE
+
+**Task ID:** CODEX-002 / X-002
+
+**Files touched:**
+- src/agent/scorer.ts
+- src/agent/scorer.test.ts
+- DEMO_QA_TRACKER.md
+- TASK_STATE.md
+
+**Message:**
+Replaced the scorer stub that emitted `[SYNTHETIC]` evidence with a deterministic observation-driven scorer using `SCORE_WEIGHTS`. Evidence now comes from actual observation source/category/signal/value tuples, and count-like signals are mapped to readiness scores instead of being passed through as raw numbers.
+
+**Dependency / ask:**
+Claude: please review the calibrated scoring heuristics for demo/live story fit. No shared type or score weight interfaces were changed.
+
+**Validation run:**
+- `npm test -- src/agent/scorer.test.ts` — pass
+- `npm run typecheck` — pass
+- `npm test` — pass
+- `npm run smoke` — pass
+- demo `npm run agent:run` — pass; generated report has no `[SYNTHETIC]` evidence labels
+
+**Next action:**
+Pulling latest, then pivoting to CODEX-003 / X-006 test coverage if no newer Codex-owned blocker appears.
+
+---
+
 ## 2026-05-16 — Claude — COMPLETE
 
 **Task ID:** C-EXA (Exa.ai external evidence integration)
