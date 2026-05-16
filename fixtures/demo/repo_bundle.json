@@ -1,0 +1,18 @@
+{
+  "repo": "fixtures/demo",
+  "observations": [
+    { "category": "ci_health", "signal": "ci_passing", "value": "true", "weight": 0.25, "source": "github" },
+    { "category": "ci_health", "signal": "last_workflow_run", "value": "success", "weight": 0.1, "source": "github" },
+    { "category": "open_blockers", "signal": "open_critical_issues", "value": "0", "weight": 0.2, "source": "github" },
+    { "category": "open_blockers", "signal": "open_prs_without_review", "value": "1", "weight": 0.1, "source": "github" },
+    { "category": "security", "signal": "dependabot_alerts", "value": "2", "weight": 0.1, "source": "github" },
+    { "category": "dependency_freshness", "signal": "outdated_major", "value": "0", "weight": 0.1, "source": "github" }
+  ],
+  "meta": {
+    "defaultBranch": "main",
+    "stars": 12,
+    "openIssues": 3,
+    "hasWorkflows": true,
+    "lastPushedAt": "2026-05-14T18:00:00Z"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "repo": "fixtures/demo",
+  "observations": [
+    { "category": "documentation", "signal": "readme_exists", "value": "true", "weight": 0.15, "source": "repo" },
+    { "category": "documentation", "signal": "changelog_exists", "value": "false", "weight": 0.05, "source": "repo" },
+    { "category": "test_coverage", "signal": "test_files_found", "value": "8", "weight": 0.2, "source": "repo" },
+    { "category": "test_coverage", "signal": "coverage_percent", "value": "74", "weight": 0.1, "source": "repo" },
+    { "category": "security", "signal": "env_secrets_exposed", "value": "false", "weight": 0.1, "source": "repo" }
+  ],
+  "filesScanned": [
+    "README.md", "package.json", "tsconfig.json",
+    ".env.example", "src/agent/loop.ts", "src/agent/scorer.ts",
+    "src/storage/schema.sql", "src/server/routes.ts"
+  ]
+}
