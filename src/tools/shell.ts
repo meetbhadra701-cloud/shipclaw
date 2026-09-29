@@ -16,13 +16,19 @@ export interface ShellResult {
   durationMs: number;
 }
 
+export function isSafeCommand(command: string): boolean {
+  return SAFE_COMMANDS.has(command.trim().replace(/\s+/g, " "));
+}
+
 // ─── STUB ─────────────────────────────────────────────────────────────────────
 
 export async function runSafeCommand(command: string): Promise<ShellResult> {
   const isDemoMode = process.env["DEMO_MODE"] === "true";
-  const baseCmd = command.split(" ").slice(0, 2).join(" ");
 
-  if (!SAFE_COMMANDS.has(baseCmd)) {
+  // Exact match only. (Previously only the first two words were compared, so
+  // "npm run typecheck" became "npm run", was rejected, and the rejection was
+  // then recorded as a failing typecheck in the CI evidence.)
+  if (!isSafeCommand(command)) {
     return {
       command,
       stdout: "",

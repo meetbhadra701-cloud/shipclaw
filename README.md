@@ -109,6 +109,7 @@ Server runs on `:8787`.
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/runs` | Start a run |
+| `GET` | `/api/runs` | Recent run summaries (score, verdict) |
 | `GET` | `/api/runs/:id` | Get run status |
 | `GET` | `/api/runs/:id/events` | SSE event stream |
 | `POST` | `/api/approvals/:id/approve` | Approve action |
@@ -117,6 +118,7 @@ Server runs on `:8787`.
 | `GET` | `/api/audit/:runId` | Audit log |
 | `GET` | `/api/reports/:runId` | List artifacts |
 | `GET` | `/api/reports/:runId/readiness` | Readiness report markdown |
+| `GET` | `/api/reports/:runId/files/:name` | Download an allowlisted artifact |
 
 ### Start a run
 
@@ -217,33 +219,28 @@ npm run seed:demo
 
 ---
 
-## Dashboard panels
+## Dashboard
 
-The React dashboard renders 13 panels:
+The UI is organized around one question: **is this repo ready to ship?** Design rationale is in
+[`SHIPCLAW_REDESIGN_SPEC.md`](SHIPCLAW_REDESIGN_SPEC.md); findings from the audit are in
+[`SHIPCLAW_REDESIGN_DISCOVERY.md`](SHIPCLAW_REDESIGN_DISCOVERY.md).
 
-1. **Goal** — run configuration form
-2. **Plan** — analysis steps overview
-3. **Agent Activity** — live SSE event stream (`role="log"`)
-4. **Readiness Score** — deterministic score + progress bar + breakdown table
-5. **Risk Fingerprint** — per-signal severity table with memory provenance
-6. **Time-to-Ship** — estimate range + heuristic reasons
-7. **Findings** — score breakdown table, top blockers, recommended actions
-8. **Approval** — approval-gated actions (`role="alert"`, auto-focused)
-9. **Live Report Preview** — react-markdown rendering of `SHIPCLAW_READINESS.md`
-10. **Final Decision** — ship/hold verdict badge
-11. **Memory** — cross-run key/value memory store
-12. **Audit Log** — per-run audit trail
-13. **External Evidence** — Exa results (when enabled)
+1. **Release verdict** — SHIP / HOLD, deterministic score on the band scale, time to ship, and the top blockers ("Fix first").
+2. **Agent workflow** — all 17 loop states, grouped into phases and streamed over SSE with real per-state timings. Stages expand to show what happened.
+3. **Why ShipClaw says HOLD** — weighted category composition, points lost per category, and the explanation labelled with its true source (Nemotron, template, or none).
+4. **Why you can trust this verdict** — five run-specific facts (deterministic score, bounded AI, human approval, memory, audit).
+5. **Proposed actions** — approve or reject; the decision is written to the audit log.
+6. **Detail tabs** — Evidence · Risks · Report (with artifact downloads) · Memory & history · Audit trail · How it works.
+
+Fixture-backed evidence is disclosed on every run. Screenshots: `docs/redesign/before/` and `docs/redesign/after/`.
 
 ### Accessibility
 
-The dashboard is WCAG AA compliant:
-- Skip link to main content
-- Score band colours verified ≥4.5:1 contrast ratio
-- `role="log"` on agent timeline, `aria-live="polite"` on score
-- Approval panel has `role="alert"` and receives focus when triggered
-- Full keyboard navigation, no mouse-only interactions
-- Reduced motion support via `prefers-reduced-motion`
+- Skip link, landmarks, a single `h1` per view, WAI-ARIA tabs (arrow keys, Home/End)
+- Polite live-region announcements for the score and verdict; no focus stealing
+- State is never conveyed by color alone (icons + text for pass/fail/severity)
+- Both themes checked with axe-core (WCAG 2.1 AA rules: 0 violations)
+- `prefers-reduced-motion` disables the replay pacing, count-up and transitions
 
 ---
 
@@ -337,8 +334,11 @@ The report section `## 🌐 External Evidence Check` shows **Status: live** with
 ## Known limitations
 
 - **better-sqlite3** was replaced with Node 24's native `node:sqlite` (X-001 complete by Codex).
-- **GitHub live mode** uses the `github.ts` stub in demo mode. Full Octokit integration is a Codex task (X-005).
-- **Real shell checks** (`npm run typecheck`, `npm test`) run against the ShipClaw project itself in demo mode, not the target repo.
+- **Evidence is fixture-backed in every mode.** `github.ts`, `repo.ts` and `shell.ts` return built-in sample data for any repository URL; live collection is X-005. The UI and `/api/health` (`evidenceSource: "fixture"`) say so.
+- **Safe checks are simulated.** Commands are allowlist-checked (exact match) but no process is executed.
+- **Approval does not pause the loop.** A pending approval is recorded and the run finishes; approving or rejecting is written to the audit log. Nothing is executed against a repository.
+- **Risk fingerprint** records the prior-run count but does not yet derive signals from memory (X-003).
+- **Nemotron** is skipped when `DEMO_MODE=true` and `ALLOW_LLM_FALLBACK=true` (the deployed config); the UI labels the explanation as a template in that case.
 
 ---
 

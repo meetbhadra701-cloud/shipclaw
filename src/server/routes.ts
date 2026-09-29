@@ -5,8 +5,22 @@
 import type { Express, Request, Response } from "express";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
+import { nanoid } from "nanoid";
 import { runAgentLoop } from "../agent/loop.js";
 import { getDb } from "../storage/db.js";
+import { EXA_ENABLED } from "../shared/constants.js";
+import { EVIDENCE_SOURCE } from "../shared/heuristics.js";
+import type { AgentEvent } from "../shared/types.js";
+
+/** Artifacts a client may download. Anything else is refused (no path traversal). */
+const ARTIFACT_FILES = [
+  "SHIPCLAW_READINESS.md",
+  "github_issue_draft.md",
+  "audit.jsonl",
+  "memory_before.jsonl",
+  "memory_after.jsonl",
+  "memory_diff.md",
+] as const;
 
 export function setupRoutes(app: Express): void {
   const db = getDb();
@@ -19,6 +33,12 @@ export function setupRoutes(app: Express): void {
       timestamp: new Date().toISOString(),
       mode: process.env["DEMO_MODE"] === "true" ? "demo" : "live",
       nemotron: process.env["NEMOTRON_API_KEY"] ? "configured" : "fallback",
+      // Additive, non-secret facts the UI uses to describe a run honestly.
+      model: process.env["NEMOTRON_MODEL"] ?? "mistralai/mistral-nemotron",
+      // With DEMO_MODE, ALLOW_LLM_FALLBACK=true skips Nemotron entirely (see assessor.ts).
+      llmFallbackAllowed: process.env["ALLOW_LLM_FALLBACK"] === "true",
+      exa: EXA_ENABLED && !!process.env["EXA_API_KEY"] ? "enabled" : "disabled",
+      evidenceSource: EVIDENCE_SOURCE,
     });
   });
 
@@ -33,25 +53,46 @@ export function setupRoutes(app: Express): void {
     }
     if (demo) process.env["DEMO_MODE"] = "true";
 
-    // Run in background, return run ID immediately
-    const runId = await new Promise<string>((resolve_) => {
-      // We start the loop without awaiting to return the runId quickly
-      const events: unknown[] = [];
-      runAgentLoop({
-        goal,
-        repo,
-        autoApproveLocal: autoApproveLocal ?? false,
-        onEvent: (e) => { events.push(e); },
-      }).catch((err: unknown) => console.error("Run error:", err));
-
-      // Return first run ID from DB after a tick
-      setTimeout(() => {
-        const runs = db.listRuns(1);
-        resolve_(runs[0]?.id ?? "unknown");
-      }, 50);
+    // Assign the ID here so the response can never point at a different, concurrent run.
+    const runId = nanoid(12);
+    runAgentLoop({
+      goal,
+      repo,
+      runId,
+      autoApproveLocal: autoApproveLocal ?? false,
+    }).catch((err: unknown) => {
+      console.error("Run error:", err);
+      // Mark the run as failed so the SSE stream terminates and clients can show the error.
+      if (db.getRun(runId)) {
+        db.updateRun(runId, { status: "error", errorMessage: String(err).slice(0, 500) });
+        db.audit(runId, "system", "run_failed", String(err).slice(0, 500));
+      }
     });
 
     res.json({ runId });
+  });
+
+  // ── GET /api/runs (recent run summaries, newest first) ─────────────────────
+  app.get("/api/runs", (req: Request, res: Response) => {
+    const limit = Math.min(Math.max(parseInt(String(req.query["limit"] ?? "10"), 10) || 10, 1), 50);
+    const runs = db.listRuns(limit).map((run) => {
+      const final = db
+        .getEvents(run.id)
+        .find((e): e is Extract<AgentEvent, { type: "final_result" }> => e.type === "final_result");
+      return {
+        id: run.id,
+        goal: run.goal,
+        repo: run.repo,
+        mode: run.mode,
+        status: run.status,
+        startedAt: run.startedAt,
+        finishedAt: run.finishedAt ?? null,
+        score: final?.score.total ?? run.readinessScore?.total ?? null,
+        band: final?.score.band ?? run.readinessScore?.band ?? null,
+        decision: final?.decision ?? run.finalDecision ?? null,
+      };
+    });
+    res.json({ runs });
   });
 
   // ── GET /api/runs/:id ──────────────────────────────────────────────────────
@@ -99,12 +140,10 @@ export function setupRoutes(app: Express): void {
     const id = req.params["id"] ?? "";
     const approval = db.getApproval(id);
     if (!approval) { res.status(404).json({ error: "Approval not found" }); return; }
-    db.updateApproval(id, {
-      status: "approved",
-      resolvedAt: new Date().toISOString(),
-      resolvedBy: "human",
-    });
-    res.json({ success: true });
+    const resolvedAt = new Date().toISOString();
+    db.updateApproval(id, { status: "approved", resolvedAt, resolvedBy: "human" });
+    db.audit(approval.runId, "human", "approval_approved", `${id}: ${approval.actionDescription}`);
+    res.json({ success: true, approval: { ...approval, status: "approved", resolvedAt, resolvedBy: "human" } });
   });
 
   // ── POST /api/approvals/:id/reject ────────────────────────────────────────
@@ -112,12 +151,10 @@ export function setupRoutes(app: Express): void {
     const id = req.params["id"] ?? "";
     const approval = db.getApproval(id);
     if (!approval) { res.status(404).json({ error: "Approval not found" }); return; }
-    db.updateApproval(id, {
-      status: "rejected",
-      resolvedAt: new Date().toISOString(),
-      resolvedBy: "human",
-    });
-    res.json({ success: true });
+    const resolvedAt = new Date().toISOString();
+    db.updateApproval(id, { status: "rejected", resolvedAt, resolvedBy: "human" });
+    db.audit(approval.runId, "human", "approval_rejected", `${id}: ${approval.actionDescription}`);
+    res.json({ success: true, approval: { ...approval, status: "rejected", resolvedAt, resolvedBy: "human" } });
   });
 
   // ── GET /api/memory ────────────────────────────────────────────────────────
@@ -140,14 +177,7 @@ export function setupRoutes(app: Express): void {
       res.status(404).json({ error: "Run artifacts not found" });
       return;
     }
-    const artifacts = [
-      "SHIPCLAW_READINESS.md",
-      "github_issue_draft.md",
-      "audit.jsonl",
-      "memory_before.jsonl",
-      "memory_after.jsonl",
-      "memory_diff.md",
-    ].filter((f) => existsSync(resolve(artifactDir, f)));
+    const artifacts = ARTIFACT_FILES.filter((f) => existsSync(resolve(artifactDir, f)));
     res.json({ runId, artifactDir, artifacts });
   });
 
@@ -168,5 +198,21 @@ export function setupRoutes(app: Express): void {
       mode: run?.mode ?? "unknown",
       generatedAt: run?.finishedAt ?? new Date().toISOString(),
     });
+  });
+
+  // ── GET /api/reports/:runId/files/:name (allowlisted artifact download) ───
+  app.get("/api/reports/:runId/files/:name", (req: Request, res: Response) => {
+    const runId = req.params["runId"] ?? "";
+    const name = req.params["name"] ?? "";
+    if (!/^[A-Za-z0-9_-]+$/.test(runId) || !(ARTIFACT_FILES as readonly string[]).includes(name)) {
+      res.status(400).json({ error: "Unknown artifact" });
+      return;
+    }
+    const path = resolve("runs", runId, name);
+    if (!existsSync(path)) {
+      res.status(404).json({ error: "Artifact not found" });
+      return;
+    }
+    res.type("text/plain; charset=utf-8").send(readFileSync(path, "utf-8"));
   });
 }

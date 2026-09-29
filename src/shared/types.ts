@@ -146,7 +146,31 @@ export interface MemorySnapshot {
 
 type EventBase = { runId: string; ts: string };
 
+/** The 17 states of the bounded agent loop (src/agent/loop.ts), in execution order. */
+export const AGENT_STATES = [
+  "INIT",
+  "LOAD_MEMORY",
+  "PLAN",
+  "FETCH_GITHUB_DATA",
+  "SCAN_REPO",
+  "RUN_SAFE_CHECKS",
+  "CALCULATE_SCORE",
+  "BUILD_RISK_FINGERPRINT",
+  "ESTIMATE_TIME_TO_SHIP",
+  "OPTIONAL_EXA_EXTERNAL_EVIDENCE",
+  "ASSESS_WITH_NEMOTRON",
+  "PROPOSE_ACTIONS",
+  "WAIT_FOR_APPROVAL",
+  "EXECUTE_APPROVED_ACTIONS",
+  "UPDATE_MEMORY",
+  "WRITE_ARTIFACTS",
+  "FINALIZE",
+] as const;
+
+export type AgentState = (typeof AGENT_STATES)[number];
+
 export type AgentEvent =
+  | (EventBase & { type: "state_entered"; state: AgentState })
   | (EventBase & { type: "goal_received"; goal: string })
   | (EventBase & { type: "memory_loaded"; itemCount: number; basedOnMemory: boolean })
   | (EventBase & { type: "plan_created"; plan: PublicPlan })

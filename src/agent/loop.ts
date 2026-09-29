@@ -2,7 +2,7 @@
  * ShipClaw — Agent Loop Spine
  * Claude-primary file. Do NOT rewrite without explicit COMMUNICATION_LOG.md coordination.
  *
- * 17-state machine. Emits all 13 AgentEvent types.
+ * 17-state machine. Emits all 14 AgentEvent types (state_entered once per state).
  * Deterministic score is computed BEFORE Nemotron is called.
  * Memory captured before + after; diff written to artifact dir.
  * All risky writes gated on approval.
@@ -20,6 +20,7 @@ import type {
   Approval,
   MemorySnapshot,
   PublicPlan,
+  AgentState,
 } from "../shared/types.js";
 import { getDb, type IDb } from "../storage/db.js";
 import { MemoryManager, MEMORY_KEYS } from "./memory.js";
@@ -36,24 +37,7 @@ import { EXA_ENABLED, DEMO_BANNER, FALLBACK_BANNER } from "../shared/constants.j
 
 // ─── State Machine ────────────────────────────────────────────────────────────
 
-type LoopState =
-  | "INIT"
-  | "LOAD_MEMORY"
-  | "PLAN"
-  | "FETCH_GITHUB_DATA"
-  | "SCAN_REPO"
-  | "RUN_SAFE_CHECKS"
-  | "CALCULATE_SCORE"
-  | "BUILD_RISK_FINGERPRINT"
-  | "ESTIMATE_TIME_TO_SHIP"
-  | "OPTIONAL_EXA_EXTERNAL_EVIDENCE"
-  | "ASSESS_WITH_NEMOTRON"
-  | "PROPOSE_ACTIONS"
-  | "WAIT_FOR_APPROVAL"
-  | "EXECUTE_APPROVED_ACTIONS"
-  | "UPDATE_MEMORY"
-  | "WRITE_ARTIFACTS"
-  | "FINALIZE";
+type LoopState = AgentState;
 
 // ─── Loop Config ──────────────────────────────────────────────────────────────
 
@@ -62,6 +46,8 @@ export interface LoopConfig {
   repo: string;
   autoApproveLocal?: boolean;   // true in demo/test mode
   onEvent?: (event: AgentEvent) => void;
+  /** Optional pre-assigned run ID (the API server assigns one so it can respond immediately) */
+  runId?: string;
 }
 
 // ─── Loop Result ──────────────────────────────────────────────────────────────
@@ -79,7 +65,7 @@ export interface LoopResult {
 
 export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
   const db = getDb();
-  const runId = nanoid(12);
+  const runId = config.runId ?? nanoid(12);
   const isDemoMode = process.env["DEMO_MODE"] === "true";
   const isLive = !isDemoMode && process.env["ALLOW_LLM_FALLBACK"] !== "true";
   const mode = isDemoMode ? "demo" : isLive ? "live" : "fallback";
@@ -127,6 +113,8 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
   // ─── State Machine ──────────────────────────────────────────────────────────
   while (state !== "FINALIZE") {
     db.updateRun(runId, { status: "running" });
+    // Every state transition is observable (SSE + audit.jsonl) with its own timestamp.
+    emit({ type: "state_entered", runId, ts: ts(), state });
 
     switch (state) {
 
@@ -414,6 +402,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
   }
 
   // ── Final state ─────────────────────────────────────────────────────────────
+  emit({ type: "state_entered", runId, ts: ts(), state: "FINALIZE" });
   const finalRun: Run = {
     ...run,
     status: "complete",

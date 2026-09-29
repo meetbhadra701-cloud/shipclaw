@@ -8,13 +8,28 @@ export const MODE_DEMO = "demo" as const;
 export const MODE_LIVE = "live" as const;
 export const MODE_FALLBACK = "fallback" as const;
 
-// ─── Score Bands ──────────────────────────────────────────────────────────────
-export const SCORE_BAND_THRESHOLDS = {
-  NOT_READY: { min: 0, max: 40 },
-  RISKY: { min: 41, max: 70 },
-  READY: { min: 71, max: 100 },
-} as const;
+// ─── Pure heuristics (shared with the UI) ─────────────────────────────────────
+import {
+  SCORE_BAND_THRESHOLDS,
+  SCORE_WEIGHTS,
+  MINUTES_PER_CRITICAL_BLOCKER,
+  MINUTES_PER_HIGH_BLOCKER,
+  MINUTES_PER_MEDIUM_BLOCKER,
+  TIME_BUFFER_MULTIPLIER,
+  type ScoreCategoryName,
+} from "./heuristics.js";
 
+export {
+  SCORE_BAND_THRESHOLDS,
+  SCORE_WEIGHTS,
+  MINUTES_PER_CRITICAL_BLOCKER,
+  MINUTES_PER_HIGH_BLOCKER,
+  MINUTES_PER_MEDIUM_BLOCKER,
+  TIME_BUFFER_MULTIPLIER,
+};
+export type { ScoreCategoryName };
+
+// ─── Score Bands ──────────────────────────────────────────────────────────────
 export function getScoreBand(total: number): import("./types.js").ScoreBand {
   if (total <= SCORE_BAND_THRESHOLDS.NOT_READY.max) return "NOT_READY";
   if (total <= SCORE_BAND_THRESHOLDS.RISKY.max) return "RISKY";
@@ -27,21 +42,9 @@ export function getScoreStatus(total: number): import("./types.js").ScoreStatus 
   return "ready";
 }
 
-// ─── Score Category Weights ───────────────────────────────────────────────────
-// Must sum to 1.0. Codex scorer must use these weights exactly.
-export const SCORE_WEIGHTS = {
-  ci_health: 0.25,
-  test_coverage: 0.20,
-  open_blockers: 0.20,
-  documentation: 0.15,
-  security: 0.10,
-  dependency_freshness: 0.10,
-} as const;
-
-export type ScoreCategoryName = keyof typeof SCORE_WEIGHTS;
-
 // ─── Agent Event Types ────────────────────────────────────────────────────────
 export const EVENT_TYPES = [
+  "state_entered",
   "goal_received",
   "memory_loaded",
   "plan_created",
@@ -62,16 +65,6 @@ export type EventType = (typeof EVENT_TYPES)[number];
 // ─── Server ───────────────────────────────────────────────────────────────────
 export const SERVER_PORT = parseInt(process.env["PORT"] ?? "8787", 10);
 export const VITE_PORT = 5173;
-
-// ─── Time-to-Ship Heuristics ──────────────────────────────────────────────────
-/** Minutes per critical blocker (used by Codex timeToShip impl) */
-export const MINUTES_PER_CRITICAL_BLOCKER = 120;
-/** Minutes per high-severity blocker */
-export const MINUTES_PER_HIGH_BLOCKER = 45;
-/** Minutes per medium blocker */
-export const MINUTES_PER_MEDIUM_BLOCKER = 20;
-/** Buffer multiplier for range max */
-export const TIME_BUFFER_MULTIPLIER = 1.5;
 
 // ─── Exa ──────────────────────────────────────────────────────────────────────
 export const EXA_MAX_SEARCHES_PER_RUN =
