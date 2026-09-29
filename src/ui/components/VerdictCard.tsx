@@ -108,7 +108,8 @@ interface Props {
 export function VerdictCard({ derived, running, animate, onShowRisks }: Props) {
   const { score, timeToShip, fingerprint, final, activeState } = derived;
   const shown = useCountUp(score?.total ?? null, animate);
-  const tone = bandTone(score?.band);
+  const incomplete = (score?.evidenceCoverage ?? 1) < 1;
+  const tone = incomplete ? "risky" : bandTone(score?.band);
   const decision = final?.decision ?? null;
   const blockers = score && fingerprint ? rankBlockers(score, fingerprint.items) : [];
   const pendingLabel = activeState ? STATE_LABEL[activeState].active : "Starting agent";
@@ -131,12 +132,12 @@ export function VerdictCard({ derived, running, animate, onShowRisks }: Props) {
               <p className="verdict__sub">
                 {decision === "ship"
                   ? `Score clears the ${SHIP_THRESHOLD}-point release bar.`
-                  : `${shortfall} point${shortfall === 1 ? "" : "s"} below the ${SHIP_THRESHOLD}-point release bar.`}
+                  : incomplete ? "Evidence is incomplete. HOLD until unmeasured areas are verified." : `${shortfall} point${shortfall === 1 ? "" : "s"} below the ${SHIP_THRESHOLD}-point release bar.`}
               </p>
             </>
           ) : (
             <div className="verdict__pending" aria-live="off">
-              <span className="spinner" aria-hidden="true" />
+              {running && <span className="spinner" aria-hidden="true" />}
               <span>{running ? `${pendingLabel}…` : "No verdict"}</span>
             </div>
           )}
@@ -144,14 +145,14 @@ export function VerdictCard({ derived, running, animate, onShowRisks }: Props) {
 
         {/* Score */}
         <div className="verdict__cell">
-          <h3 className="kicker">Readiness score</h3>
+          <h3 className="kicker">Readiness · evidence points</h3>
           {score ? (
             <>
               <p className="verdict__score">
-                <span className="num tone-text" aria-hidden="true">{shown ?? score.total}</span>
+                <span className="num tone-text" aria-hidden="true">{score.evidenceCoverage === 0 ? "—" : shown ?? score.total}</span>
                 <span className="verdict__of" aria-hidden="true">/100</span>
                 <span className="visually-hidden">{score.total} out of 100</span>
-                <span className="badge tone-bg">{BAND_LABEL[score.band]}</span>
+                <span className="badge tone-bg">{incomplete ? "Incomplete" : BAND_LABEL[score.band]}</span>
               </p>
               <ScoreScale total={score.total} />
               <p className="verdict__foot">Deterministic · computed before any model call</p>
@@ -163,8 +164,8 @@ export function VerdictCard({ derived, running, animate, onShowRisks }: Props) {
 
         {/* Time to ship */}
         <div className="verdict__cell">
-          <h3 className="kicker">Time to ship</h3>
-          {timeToShip ? (
+          <h3 className="kicker">Remediation estimate</h3>
+          {timeToShip && blockers.length > 0 ? (
             <>
               <p className="verdict__eta num">
                 <span className="nowrap">{formatMinutes(timeToShip.minMinutes)}</span>
@@ -172,18 +173,18 @@ export function VerdictCard({ derived, running, animate, onShowRisks }: Props) {
                 <span className="nowrap">{formatMinutes(timeToShip.maxMinutes)}</span>
               </p>
               <p className="verdict__foot">
-                Estimated remediation ·{" "}
+                Illustrative effort for measured weaknesses only; not a ship date ·{" "}
                 {blockers.length > 0
                   ? (["critical", "high", "medium"] as const)
                       .map((sev) => ({ sev, n: blockers.filter((b) => b.item.severity === sev).length }))
                       .filter((x) => x.n > 0)
                       .map((x) => `${x.n} ${x.sev} × ${formatMinutes(SEVERITY_MINUTES[x.sev])}`)
-                      .join(" + ") + `, ×${TIME_BUFFER_MULTIPLIER} buffer`
+                      .join(" + ") + `; 30m minimum, ×${TIME_BUFFER_MULTIPLIER} buffer`
                   : timeToShip.reasons[0]}
               </p>
             </>
           ) : (
-            <Skeleton label="Waiting for risk analysis" />
+            fingerprint ? <p className="muted">Unmeasured — no measured weaknesses to estimate. Unknown work is excluded.</p> : <Skeleton label="Waiting for risk analysis" />
           )}
         </div>
       </div>
@@ -200,7 +201,7 @@ export function VerdictCard({ derived, running, animate, onShowRisks }: Props) {
             )}
           </div>
           {blockers.length === 0 ? (
-            <p className="muted">No failing categories. Review the evidence before shipping.</p>
+            <p className="muted">No measured categories below bar. Unknown evidence still requires review before shipping.</p>
           ) : (
             <ol className="fixfirst__list">
               {blockers.slice(0, 3).map((b) => (

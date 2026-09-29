@@ -37,7 +37,7 @@ function stageDetail(state: AgentState, d: DerivedRun, explainSource: ExplainSou
     }
     case "RUN_SAFE_CHECKS": {
       const cs = calls("shell");
-      if (cs.length === 0) return null;
+      if (cs.length === 0) return <>Read-only analysis. Tests, typecheck, and repository scripts were not executed.</>;
       return (
         <>
           {cs.map((c, i) => (
@@ -59,17 +59,17 @@ function stageDetail(state: AgentState, d: DerivedRun, explainSource: ExplainSou
         : null;
     case "ASSESS_WITH_NEMOTRON":
       return explainSource === "nemotron" ? <>Nemotron explained the score; verdict checked against the threshold</>
-        : explainSource === "template" ? <>Nemotron not called · templated explanation</>
+        : explainSource === "template" ? <>Deterministic template · see explanation source for reason</>
         : d.final ? <>No explanation returned · verdict from threshold</> : null;
     case "PROPOSE_ACTIONS":
       return d.approval ? <>{d.approval.actionDescription.split(" | ").length} actions proposed · {d.approval.riskLevel} risk</> : d.memoryChanges ? <>No actions to propose</> : null;
-    case "WAIT_FOR_APPROVAL":
+    case "RECORD_REVIEW":
       return d.approval ? <>Approval {d.approval.status === "pending" ? "requested · recorded as pending, the run does not block" : `${d.approval.status} by ${d.approval.resolvedBy}`}</> : null;
-    case "EXECUTE_APPROVED_ACTIONS":
+    case "COMPLETE_READ_ONLY":
       return d.approval?.status === "approved"
         ? <>Approved actions recorded in the audit trail · no repository changes are made</>
-        : d.approval ? <>Nothing executed: the approval is still pending when the run ends</>
-        : <>No actions to execute</>;
+        : d.approval ? <>Review available. No repository execution exists in this version</>
+        : <>No repository actions executed</>;
     case "UPDATE_MEMORY": {
       const ch = d.memoryChanges;
       if (!ch) return null;
@@ -85,11 +85,14 @@ function stageDetail(state: AgentState, d: DerivedRun, explainSource: ExplainSou
 
 /** Done-labels that depend on what actually happened in the run. */
 function doneLabel(state: AgentState, d: DerivedRun): string {
-  if (state === "EXECUTE_APPROVED_ACTIONS") {
-    if (d.approval?.status === "approved") return "Approved actions recorded";
-    return d.approval ? "Nothing executed (pending approval)" : "No actions to execute";
+  if (state === "ASSESS_WITH_NEMOTRON" && d.final) return !d.final.assessorOutput ? "Explanation unavailable" : d.final.assessorOutput.mode === "fallback" ? "Template explanation generated" : "Nemotron explanation received";
+  if (state === "OPTIONAL_EXA_EXTERNAL_EVIDENCE" && !d.externalEvidence?.enabled) return "External evidence skipped";
+  if (state === "ESTIMATE_TIME_TO_SHIP" && d.timeToShip?.minMinutes === 0) return "Remediation effort unmeasured";
+  if (state === "COMPLETE_READ_ONLY") {
+    if (d.approval?.status === "approved") return "Review recorded; no execution";
+    return "Read-only analysis confirmed";
   }
-  if (state === "WAIT_FOR_APPROVAL" && d.approval?.status === "approved") return "Approval granted (auto)";
+  if (state === "RECORD_REVIEW" && d.approval?.status === "approved") return `Review approved (${d.approval.resolvedBy ?? "human"})`;
   return STATE_LABEL[state].done;
 }
 
@@ -155,7 +158,7 @@ export function Workflow({ derived, explainSource, fixture, replayed, failed }: 
           <h2 id="workflow-title" className="card__title">Agent workflow</h2>
           <p className="card__sub">
             {complete
-              ? <>All {total} states completed{derived.elapsedMs !== null ? <> in <span className="num">{formatMs(derived.elapsedMs)}</span></> : null}{replayed ? "" : " · replayed at readable speed"}</>
+              ? <>Workflow finished ({total} states, including skipped steps){derived.elapsedMs !== null ? <> in <span className="num">{formatMs(derived.elapsedMs)}</span></> : null}{replayed ? "" : " · replayed at readable speed"}</>
               : failed ? <>Stopped at step {Math.max(done, 1)} of {total}</>
               : <>Step {activeIndex >= 0 ? activeIndex + 1 : done} of {total} · bounded state machine</>}
           </p>

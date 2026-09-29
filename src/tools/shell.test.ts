@@ -8,7 +8,7 @@ describe("shell allowlist", () => {
     else process.env["DEMO_MODE"] = originalDemo;
   });
 
-  it("accepts the exact commands the agent loop runs", () => {
+  it("recognizes the legacy exact allowlist (not used by the agent loop)", () => {
     expect(isSafeCommand("npm run typecheck")).toBe(true);
     expect(isSafeCommand("npm test")).toBe(true);
   });
@@ -19,11 +19,17 @@ describe("shell allowlist", () => {
     expect(isSafeCommand("npm test && rm -rf /")).toBe(false);
   });
 
-  it("does not report the allowlisted typecheck as a failure", async () => {
+  it("labels legacy sample output as simulated", async () => {
     process.env["DEMO_MODE"] = "true";
     const result = await runSafeCommand("npm run typecheck");
     expect(result.exitCode).toBe(0);
+    expect(result.status).toBe("simulated");
     expect(result.stderr).toBe("");
+  });
+
+  it("cannot report an unexecuted live command as passing", async () => {
+    process.env["DEMO_MODE"] = "false";
+    expect(await runSafeCommand("npm test")).toMatchObject({ status: "unmeasured", exitCode: null });
   });
 
   it("refuses non-allowlisted commands without executing them", async () => {

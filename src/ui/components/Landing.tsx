@@ -12,28 +12,28 @@ interface Props {
   error: string | null;
   health: Health | null;
   history: RunSummary[];
-  onAnalyze: (repo: string, goal: string) => void;
+  onAnalyze: (repo: string, goal: string, demo?: boolean) => void;
   onOpen: (run: RunSummary) => void;
 }
 
 const STEPS: Array<{ title: string; body: string }> = [
-  { title: "Collect evidence", body: "Repository metadata, important files and allowlisted safe checks become typed observations." },
+  { title: "Collect evidence", body: "Repository metadata, a pinned file tree and GitHub Actions results become typed observations." },
   { title: "Score with fixed rules", body: "Six weighted categories produce a 0–100 score. No model is involved in this step." },
-  { title: "Quantify the risk", body: "Failing categories become ranked risks; an explicit formula estimates time to ship." },
+  { title: "Quantify the risk", body: "Measured weaknesses become ranked risks. Unknown evidence stays unknown; effort estimates are illustrative." },
   { title: "Explain, bounded", body: "Nemotron explains the finished score. If its verdict disagrees with the threshold, the code overrides it." },
-  { title: "Stay in control", body: "Proposed actions wait for your approval. Every step is streamed, stored in memory and written to an audit trail." },
+  { title: "Stay in control", body: "Review proposed actions and record your decision. Analysis is read-only; no proposal is executed." },
 ];
 
 export function Landing({ busy, error, health, history, onAnalyze, onOpen }: Props) {
   const [repo, setRepo] = useState("");
   const [goal, setGoal] = useState(DEFAULT_GOAL);
-  const fixture = (health?.evidenceSource ?? "fixture") === "fixture";
+  const [demo, setDemo] = useState(false);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const r = repo.trim();
     if (!r || busy) return;
-    onAnalyze(r, goal.trim() || DEFAULT_GOAL);
+    onAnalyze(r, goal.trim() || DEFAULT_GOAL, demo);
   };
 
   return (
@@ -43,10 +43,10 @@ export function Landing({ busy, error, health, history, onAnalyze, onOpen }: Pro
         <h1 id="landing-title" className="landing__title">Is this repo ready to ship?</h1>
         <p className="landing__lede">
           ShipClaw collects release evidence, scores it with fixed rules, estimates the work left,
-          and has an AI model explain the verdict without letting it change the score.
+          and optionally uses Nemotron to explain the result without changing the score.
         </p>
 
-        <form className="analyze" onSubmit={submit} noValidate aria-describedby={fixture ? "fixture-note" : undefined}>
+        <form className="analyze" onSubmit={submit} noValidate aria-describedby="fixture-note">
           <label htmlFor="repo-input" className="analyze__label">GitHub repository</label>
           <div className="analyze__row">
             <input
@@ -58,7 +58,7 @@ export function Landing({ busy, error, health, history, onAnalyze, onOpen }: Pro
               spellCheck={false}
               placeholder="https://github.com/owner/repo"
               value={repo}
-              onChange={(e) => setRepo(e.target.value)}
+              onChange={(e) => { setRepo(e.target.value); setDemo(false); }}
               aria-invalid={error ? true : undefined}
               aria-errormessage={error ? "analyze-error" : undefined}
               disabled={busy}
@@ -78,8 +78,8 @@ export function Landing({ busy, error, health, history, onAnalyze, onOpen }: Pro
               onChange={(e) => setGoal(e.target.value)}
               disabled={busy}
             />
-            <button type="button" className="link-btn" onClick={() => setRepo(SAMPLE_REPO)} disabled={busy}>
-              Use sample repository
+            <button type="button" className="link-btn" onClick={() => { setRepo(SAMPLE_REPO); setDemo(true); }} disabled={busy}>
+              Use sample (no network)
             </button>
           </div>
           {error && (
@@ -87,11 +87,10 @@ export function Landing({ busy, error, health, history, onAnalyze, onOpen }: Pro
               <Icon name="alert" size={14} /> Could not start the analysis: {error}
             </p>
           )}
-          {fixture && (
+          {(
             <p id="fixture-note" className="fixture-note">
-              <span className="chip chip--fixture">Fixture evidence</span>
-              Live GitHub collection isn't wired up yet. Every run analyzes a built-in sample repository
-              snapshot. Scoring, risk analysis, estimates, memory, reports and the audit trail all run for real.
+              <span className="chip chip--fixture">{demo ? "Sample evidence" : "Read-only GitHub"}</span>
+              {demo ? "Built-in synthetic snapshot; no GitHub or model requests. Edit the URL to return to real analysis." : "Public repositories, no token required where GitHub permits. No cloning, package installation, or code execution. Missing evidence stays unknown."}
             </p>
           )}
         </form>
@@ -109,7 +108,7 @@ export function Landing({ busy, error, health, history, onAnalyze, onOpen }: Pro
           ))}
         </ul>
         <p className="section-note">
-          Weighted average of the six categories. {SHIP_THRESHOLD}+ ships; 41–70 is risky; 40 or below is not ready.
+          Fixed category weights. Unknown categories earn no points and remain unmeasured. SHIP requires {SHIP_THRESHOLD}+ and all categories measured; a file-presence score is not a release certification.
         </p>
       </section>
 

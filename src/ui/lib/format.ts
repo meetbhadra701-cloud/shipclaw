@@ -20,21 +20,21 @@ export const BAND_LABEL: Record<ScoreBand, string> = {
 };
 
 export const CATEGORY_LABEL: Record<string, string> = {
-  ci_health: "CI health",
-  test_coverage: "Tests",
+  ci_health: "Actions status",
+  test_coverage: "Test indicators",
   open_blockers: "Open blockers",
   documentation: "Documentation",
-  security: "Security",
+  security: "Security policy",
   dependency_freshness: "Dependencies",
 };
 
 export const CATEGORY_CHECKS: Record<string, string> = {
-  ci_health: "Workflow status, typecheck and test runs",
-  test_coverage: "Test files and coverage",
-  open_blockers: "Open issues and unreviewed PRs",
+  ci_health: "Actions results at the inspected commit",
+  test_coverage: "File-name indicators; execution and coverage unmeasured",
+  open_blockers: "Counts are context; release-blocker triage unmeasured",
   documentation: "README and CHANGELOG",
-  security: "Security policy, alerts, exposed secrets",
-  dependency_freshness: "Outdated major versions",
+  security: "Policy presence only; vulnerabilities unmeasured",
+  dependency_freshness: "Manifests and locks observed; freshness unmeasured",
 };
 
 export function categoryLabel(name: string): string {
@@ -109,7 +109,7 @@ export function parseEvidence(raw: string): ParsedEvidence | DefaultEvidence {
 }
 
 const SIGNAL_LABEL: Record<string, string> = {
-  ci_status: "CI status",
+  ci_status: "Observed Actions status",
   ci_passing: "CI passing",
   last_workflow_run: "Last workflow run",
   "npm run typecheck": "Typecheck",
@@ -125,7 +125,7 @@ const SIGNAL_LABEL: Record<string, string> = {
   test_files_found: "Test files",
   test_files: "Test files",
   coverage_percent: "Coverage",
-  has_security_policy: "SECURITY.md",
+  has_security_policy: "Repository SECURITY policy",
   dependabot_alerts: "Dependabot alerts",
   env_secrets_exposed: "Exposed secrets",
   outdated_major: "Outdated majors",
@@ -189,6 +189,6 @@ export function weakEvidence(evidence: string[]): Array<ParsedEvidence | Default
 }
 
 export function describeEvidence(e: ParsedEvidence | DefaultEvidence): string {
-  if (e.kind === "default") return "No evidence collected — scored at the conservative default";
+  if (e.kind === "default") return e.raw;
   return `${signalLabel(e.signal)}: ${valueLabel(e.signal, e.value)}`;
 }

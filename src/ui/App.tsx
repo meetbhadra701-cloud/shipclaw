@@ -33,7 +33,7 @@ export default function App() {
   const liveRef = useRef<HTMLDivElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
 
-  const fixture = (health?.evidenceSource ?? "fixture") === "fixture";
+  const fixture = derived.evidence?.source === "fixture" || view.mode === "demo";
   const inRun = phase === "running" || phase === "complete" || phase === "error";
   const complete = phase === "complete";
   const explainSource = derived.final ? explainSourceOf(derived.final.assessorOutput) : null;
@@ -60,7 +60,7 @@ export default function App() {
 
   useEffect(() => {
     if (!derived.final || !derived.score) return;
-    const tts = derived.timeToShip ? ` Estimated time to ship ${formatMinutes(derived.timeToShip.minMinutes)} to ${formatMinutes(derived.timeToShip.maxMinutes)}.` : "";
+    const tts = derived.timeToShip && derived.fingerprint?.items.length ? ` Illustrative effort for observed weaknesses ${formatMinutes(derived.timeToShip.minMinutes)} to ${formatMinutes(derived.timeToShip.maxMinutes)}.` : "";
     announce(`Analysis complete. Verdict ${derived.final.decision.toUpperCase()}. Score ${derived.score.total} out of 100.${tts}`);
   }, [derived.final, derived.score, derived.timeToShip, announce]);
 
@@ -86,7 +86,7 @@ export default function App() {
     { id: "evidence", label: "Evidence", count: derived.score?.categories.reduce((n, c) => n + c.evidence.length, 0) ?? null, render: () => <EvidenceView derived={derived} fixture={fixture} /> },
     { id: "risks", label: "Risks", count: derived.fingerprint?.items.length ?? null, render: () => <RiskView derived={derived} /> },
     { id: "report", label: "Report", render: () => <ReportView runId={view.runId} report={view.report} artifacts={view.artifacts} /> },
-    { id: "memory", label: "Memory & history", render: () => <MemoryView changes={derived.memoryChanges} memory={view.memory} history={history} currentRunId={view.runId} onOpen={open} /> },
+    { id: "memory", label: "Memory & history", render: () => <MemoryView storage={health?.storage} changes={derived.memoryChanges} memory={view.memory} history={history} currentRunId={view.runId} onOpen={open} /> },
     { id: "audit", label: "Audit trail", count: view.events.length, render: () => <AuditView events={view.events} audit={view.audit} /> },
     { id: "system", label: "How it works", render: () => <SystemView health={health} explainSource={explainSource} /> },
   ];
@@ -100,7 +100,7 @@ export default function App() {
           <Brand onHome={inRun ? reset : undefined} />
           <span className="topbar__tag">Release readiness</span>
           <div className="topbar__right">
-            {fixture && <span className="chip chip--fixture" title="Repository evidence comes from a built-in fixture">Fixture evidence</span>}
+            <span className="chip chip--fixture">{fixture ? "Sample evidence" : "Read-only GitHub"}</span>
             <ThemeToggle />
           </div>
         </div>
@@ -122,7 +122,7 @@ export default function App() {
               <div className="run-head__text">
                 <p className="kicker">
                   Release readiness{view.runId && <> · run <span className="mono">{view.runId}</span></>}
-                  {view.replayed && complete ? " · from history" : ""}
+                  {view.fromHistory && complete ? " · from history" : ""}
                 </p>
                 <h1 ref={headingRef} tabIndex={-1} className="run-head__repo mono">{shortRepo(view.repo)}</h1>
                 <p className="run-head__goal">{view.goal}</p>
@@ -141,6 +141,9 @@ export default function App() {
               </p>
             )}
 
+            {!fixture && derived.evidence && (
+              <p className="notice"><span className="chip">GitHub evidence</span><span>Inspected <span className="mono">{derived.evidence.latestCommitSha?.slice(0, 12) ?? "no commit available"}</span> on {derived.evidence.defaultBranch}. Read-only snapshot; tests, security audits, and dependency freshness were not run.</span></p>
+            )}
             {phase === "error" && (
               <div className="alert" role="alert">
                 <Icon name="alert" size={16} />
@@ -178,7 +181,7 @@ export default function App() {
                   />
                   {complete && (
                     <>
-                      <TrustFacts derived={derived} explainSource={explainSource ?? "none"} eventCount={view.events.length} artifactCount={view.artifacts.length} onOpenTab={openTab} />
+                      <TrustFacts storage={health?.storage} derived={derived} explainSource={explainSource ?? "none"} eventCount={view.events.length} artifactCount={view.artifacts.length} onOpenTab={openTab} />
                       <ActionsPanel approval={derived.approval} decision={view.approvalDecision} assessor={derived.final?.assessorOutput ?? null} onResolve={resolveApproval} announce={announce} />
                     </>
                   )}

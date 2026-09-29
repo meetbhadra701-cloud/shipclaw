@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as nemotron from "../llm/nemotron.js";
 import { assess } from "./assessor.js";
 import type { AssessorContext } from "./prompts.js";
 
@@ -42,6 +43,7 @@ const ctx: AssessorContext = {
 };
 
 afterEach(() => {
+  vi.restoreAllMocks();
   if (originalDemoMode === undefined) delete process.env["DEMO_MODE"];
   else process.env["DEMO_MODE"] = originalDemoMode;
 
@@ -58,9 +60,43 @@ describe("assess", () => {
 
     expect(result.mode).toBe("fallback");
     expect(result.decision).toBe("hold");
-    expect(result.confidence).toBe(0.7);
+    expect(result.confidence).toBeNull();
     expect(result.blockers).toEqual(["ci_health scored 40/100 — CI failing"]);
     expect(result.recommendedActions).toEqual(["Improve ci_health: address evidence signals"]);
-    expect(result.uncertaintyNotes[0]).toContain("Nemotron was unavailable");
+    expect(result.uncertaintyNotes[0]).toContain("no model was called");
+  });
+});
+
+
+describe("model boundary", () => {
+  it("ignores model numeric scores and corrects an incompatible verdict", async () => {
+    const input = structuredClone(ctx);
+    input.score.mode = "live";
+    const before = JSON.stringify(input.score);
+    vi.spyOn(nemotron, "completeJson").mockResolvedValue({ decision: "ship", total: 100, score: 100, confidence: .9, explanation: "An explanation", blockers: [], recommendedActions: [], uncertaintyNotes: [] });
+    const result = await assess(input);
+    expect(JSON.stringify(input.score)).toBe(before);
+    expect(result).toMatchObject({ decision: "hold", mode: "live", source: "nemotron" });
+    expect(result).not.toHaveProperty("total");
+    expect(result).not.toHaveProperty("score");
+  });
+  it("holds an otherwise high score with unmeasured categories", async () => {
+    const input = structuredClone(ctx); input.score.mode = "live"; input.score.total = 80; input.score.evidenceCoverage = .9;
+    vi.spyOn(nemotron, "completeJson").mockResolvedValue({ decision: "ship", confidence: .8, explanation: "Review needed", blockers: [], recommendedActions: [], uncertaintyNotes: [] });
+    expect((await assess(input)).decision).toBe("hold");
+  });
+  it("reports request-failure fallback independently of live evidence", async () => {
+    process.env["ALLOW_LLM_FALLBACK"] = "true";
+    const input = structuredClone(ctx); input.score.mode = "live";
+    vi.spyOn(nemotron, "completeJson").mockRejectedValue(new Error("do not expose this"));
+    const result = await assess(input);
+    expect(result).toMatchObject({ mode: "fallback", source: "deterministic_fallback", confidence: null });
+    expect(input.score.mode).toBe("live");
+  });
+  it("leaves the assessor unavailable when fallback is disabled", async () => {
+    process.env["ALLOW_LLM_FALLBACK"] = "false";
+    const input = structuredClone(ctx); input.score.mode = "live";
+    vi.spyOn(nemotron, "completeJson").mockRejectedValue(new Error("API unavailable"));
+    await expect(assess(input)).rejects.toThrow("API unavailable");
   });
 });

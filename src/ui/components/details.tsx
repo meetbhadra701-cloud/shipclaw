@@ -44,9 +44,24 @@ export function EvidenceView({ derived, fixture }: { derived: DerivedRun; fixtur
     <div className="stack">
       <p className="view-intro">
         Every observation the scorer used, and the fixed rule's output for it. The category score is the average of its
-        observations; a category with none is scored at a conservative 50.
-        {fixture && <> <strong>Source data is a built-in fixture</strong> (GitHub and repo scan), and safe checks are simulated.</>}
+        measured observations. Unknown categories earn no points and are never marked as measured failures.
+        {fixture && <> <strong>Source data is a built-in fixture</strong> (no GitHub requests or repository execution).</>}
       </p>
+      {derived.evidence && <>
+        <h3 className="sub-title">What we measured</h3>
+        <TableWrap label="Repository snapshot"><table className="table"><tbody>
+          <tr><th scope="row">Repository</th><td><a href={derived.evidence.repository} target="_blank" rel="noreferrer">{derived.evidence.repository}</a></td></tr>
+          <tr><th scope="row">Snapshot</th><td className="mono break">{derived.evidence.latestCommitSha ?? "Unmeasured"} · {derived.evidence.defaultBranch} · collected {formatTime(derived.evidence.collectedAt)}</td></tr>
+          <tr><th scope="row">Open issues / PRs</th><td>{derived.evidence.openIssueCount ?? "unknown"} / {derived.evidence.openPRCount ?? "unknown"} · contextual counts, not scored as blockers</td></tr>
+          <tr><th scope="row">Actions files / status</th><td>{derived.evidence.hasCI === null ? "unknown" : derived.evidence.hasCI ? "present" : "absent"} / {derived.evidence.ciStatus}</td></tr>
+          <tr><th scope="row">File tree</th><td>{derived.evidence.filePaths.length} regular file paths · {derived.evidence.treeComplete ? "complete" : "incomplete or unavailable"}</td></tr>
+        </tbody></table></TableWrap>
+        {derived.evidence.actionsRuns && derived.evidence.actionsRuns.length > 0 && <ul className="plain-list small">{derived.evidence.actionsRuns.map((run, i) => <li key={i}><a href={run.url} target="_blank" rel="noreferrer">{run.name}</a>: {run.status} / {run.conclusion ?? "pending"} · not necessarily a test workflow</li>)}</ul>}
+        <h3 className="sub-title">What we could not measure</h3>
+        <ul className="plain-list small">{derived.evidence.limitations.map((note, i) => <li key={i}>{note}</li>)}</ul>
+        <details><summary>Observed file paths (read-only snapshot)</summary><pre className="events__json">{derived.evidence.filePaths.join("\n") || "No file tree available"}</pre></details>
+      </>}
+      <h3 className="sub-title">How evidence produced the score</h3>
       <TableWrap label="Scored evidence">
         <table className="table">
           <caption className="visually-hidden">Scored evidence by category</caption>
@@ -79,8 +94,8 @@ export function EvidenceView({ derived, fixture }: { derived: DerivedRun; fixtur
                     ) : (
                       <>
                         <td className="muted">—</td>
-                        <td colSpan={2} className="muted">No observations collected</td>
-                        <td className="num-col num muted">50 (default)</td>
+                        <td colSpan={2} className="muted">{raw}</td>
+                        <td className="num-col num muted">Unmeasured</td>
                       </>
                     )}
                   </tr>
@@ -129,11 +144,11 @@ export function RiskView({ derived }: { derived: DerivedRun }) {
   return (
     <div className="stack">
       <p className="view-intro">
-        One risk per failing category. Severity: below 30 is critical, below 50 high, otherwise medium. Built with context
+        One risk per measured category below bar. Severity: below 30 is critical, below 50 high, otherwise medium. Built with context
         from {fingerprint.memoryGenerationCount} prior run{fingerprint.memoryGenerationCount === 1 ? "" : "s"}; signals are
         currently derived from this run's scores (history-derived signals are not implemented yet).
       </p>
-      {blockers.length === 0 ? <p>No risks — every category passed.</p> : (
+      {blockers.length === 0 ? <p>No measured categories below bar. Unknown evidence is not a pass.</p> : (
         <TableWrap label="Risks">
           <table className="table">
             <thead>
@@ -155,9 +170,9 @@ export function RiskView({ derived }: { derived: DerivedRun }) {
       )}
       {timeToShip && (
         <div className="formula">
-          <h3 className="sub-title">Time-to-ship formula</h3>
+          <h3 className="sub-title">Illustrative effort formula</h3>
           <p className="mono formula__expr">
-            min = max(30, critical×{MINUTES_PER_CRITICAL_BLOCKER} + high×{MINUTES_PER_HIGH_BLOCKER} + medium×{MINUTES_PER_MEDIUM_BLOCKER}) = {timeToShip.minMinutes} min
+            min = no measured weaknesses ? 0 : max(30, critical×{MINUTES_PER_CRITICAL_BLOCKER} + high×{MINUTES_PER_HIGH_BLOCKER} + medium×{MINUTES_PER_MEDIUM_BLOCKER}) = {timeToShip.minMinutes} min
             <br />max = min × {TIME_BUFFER_MULTIPLIER} = {timeToShip.maxMinutes} min
           </p>
           <ul className="plain-list">{timeToShip.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
@@ -234,7 +249,8 @@ export function ReportView({ runId, report, artifacts }: { runId: string | null;
 
 // ─── Memory & history ─────────────────────────────────────────────────────────
 
-export function MemoryView({ changes, memory, history, currentRunId, onOpen }: {
+export function MemoryView({ storage, changes, memory, history, currentRunId, onOpen }: {
+  storage?: "sqlite" | "volatile";
   changes: MemoryChange[] | null;
   memory: MemoryItem[];
   history: RunSummary[];
@@ -246,7 +262,7 @@ export function MemoryView({ changes, memory, history, currentRunId, onOpen }: {
   return (
     <div className="stack">
       <p className="view-intro">
-        ShipClaw keeps a persistent key/value memory (SQLite). Each run snapshots it before and after and writes the diff as
+        ShipClaw keeps {storage === "sqlite" ? "SQLite memory on the server data volume" : "volatile session memory (lost on restart)"}. Each run snapshots it before and after and writes the diff as
         an artifact, so later runs know what earlier runs saw.
       </p>
       <div className="split">
@@ -317,6 +333,7 @@ function summarize(e: AgentEvent): string {
     case "approval_requested": return `${e.approval.id} ${e.approval.riskLevel}`;
     case "approval_resolved": return `${e.approval.id} ${e.approval.status} by ${e.approval.resolvedBy}`;
     case "memory_updated": return `${e.changes.length} keys`;
+    case "repository_evidence": return `${e.evidence.source}: ${e.evidence.repository} @ ${e.evidence.latestCommitSha ?? "unknown commit"}`;
     case "final_result": return `decision=${e.decision} total=${e.score.total}`;
   }
 }
@@ -372,22 +389,22 @@ type Status = "real" | "fixture" | "off" | "partial";
 const STATUS_LABEL: Record<Status, string> = { real: "Implemented", fixture: "Fixture data", off: "Off", partial: "Partial" };
 
 export function SystemView({ health, explainSource }: { health: Health | null; explainSource: ExplainSource | null }) {
-  const fixture = (health?.evidenceSource ?? "fixture") === "fixture";
+  const fixture = health?.evidenceSource === "fixture";
   const nemotronConfigured = health?.nemotron === "configured";
   const rows: Array<{ area: string; what: string; status: Status; where: string }> = [
     { area: "Agent", what: "17-state bounded state machine; every transition is an event", status: "real", where: "src/agent/loop.ts" },
-    { area: "Evidence", what: "GitHub metadata, repository scan, allowlisted safe checks", status: fixture ? "fixture" : "real", where: "src/tools/" },
+    { area: "Evidence", what: "Read-only GitHub metadata, commit-pinned tree and Actions results; no code execution", status: fixture ? "fixture" : "real", where: "src/tools/" },
     { area: "Analysis", what: `Weighted scoring: ${Object.entries(SCORE_WEIGHTS).map(([k, w]) => `${categoryLabel(k)} ${Math.round(w * 100)}%`).join(", ")}`, status: "real", where: "src/agent/scorer.ts" },
     { area: "Risk", what: "Severity-ranked fingerprint of failing categories, with prior-run context", status: "partial", where: "src/agent/riskFingerprint.ts" },
     { area: "Estimation", what: "Explicit time-to-remediation formula with buffer", status: "real", where: "src/agent/timeToShip.ts" },
     {
       area: "AI",
       what: `Nemotron (${health?.model ?? "mistralai/mistral-nemotron"}) explains the score; zod-validated; verdict forced to the threshold`,
-      status: nemotronConfigured && !health?.llmFallbackAllowed ? "real" : "off",
+      status: nemotronConfigured ? "real" : "off",
       where: "src/agent/assessor.ts",
     },
     { area: "Safety", what: "Proposed actions become approval requests; decisions are audited; nothing is executed", status: "partial", where: "src/server/routes.ts" },
-    { area: "Memory", what: "Persistent SQLite key/value memory with before/after snapshots", status: "real", where: "src/agent/memory.ts" },
+    { area: "Memory", what: health?.storage === "sqlite" ? "SQLite storage with before/after snapshots; persistence depends on keeping the data volume" : "Volatile in-memory storage; lost on restart", status: health?.storage === "sqlite" ? "real" : "partial", where: "src/agent/memory.ts" },
     { area: "Observability", what: "Server-sent event stream, events table, audit log, audit.jsonl", status: "real", where: "src/server/routes.ts" },
     { area: "Outputs", what: "Readiness report, GitHub issue draft, memory diff", status: "real", where: "src/agent/report.ts" },
     { area: "External evidence", what: "Exa search, ≤3 sanitized queries, cannot change the score", status: health?.exa === "enabled" ? "real" : "off", where: "src/tools/exa.ts" },
@@ -414,10 +431,10 @@ export function SystemView({ health, explainSource }: { health: Health | null; e
         </table>
       </TableWrap>
       <ul className="plain-list small">
-        <li><strong>Evidence:</strong> {fixture ? "live GitHub/file/shell collection is not implemented yet (TASK_STATE X-005); tools return a built-in fixture for any repository URL." : "collected live."}</li>
-        <li><strong>Model:</strong> {nemotronConfigured ? "API key configured." : "no API key configured."} {health?.llmFallbackAllowed ? "Fallback is allowed, so demo runs skip Nemotron and use a templated explanation." : ""} {explainSource ? `This run: ${explainSource === "nemotron" ? "explained by Nemotron" : explainSource === "template" ? "templated explanation" : "no explanation returned"}.` : ""}</li>
+        <li><strong>Evidence:</strong> {fixture ? "sample mode uses a built-in fixture." : "public GitHub API reads; missing signals stay unknown; no repository code is executed."}</li>
+        <li><strong>Model:</strong> {nemotronConfigured ? "API key configured." : "no API key configured."} {health?.llmFallbackAllowed ? "Live requests may fall back to a template. Sample runs always use a template." : ""} {explainSource ? `This run: ${explainSource === "nemotron" ? "explained by Nemotron" : explainSource === "template" ? "templated explanation" : "no explanation returned"}.` : ""}</li>
         <li><strong>Risk:</strong> the fingerprint records prior-run count; deriving signals from memory is not implemented yet.</li>
-        <li><strong>Approval:</strong> the run records a pending approval and continues; approving or rejecting is written to the audit log.</li>
+        <li><strong>Approval:</strong> proposal review records acceptance or rejection only. It never executes changes or blocks the read-only analysis.</li>
       </ul>
     </div>
   );

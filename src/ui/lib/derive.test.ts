@@ -20,10 +20,10 @@ describe("deriveRun", () => {
   });
 
   it("marks states the loop jumped over as skipped once later states are entered", () => {
-    const states = AGENT_STATES.filter((s) => s !== "WAIT_FOR_APPROVAL");
+    const states = AGENT_STATES.filter((s) => s !== "RECORD_REVIEW");
     const events = states.map((s, i) => enter(s, i));
     const d = deriveRun(events);
-    expect(d.stages.find((s) => s.state === "WAIT_FOR_APPROVAL")?.status).toBe("skipped");
+    expect(d.stages.find((s) => s.state === "RECORD_REVIEW")?.status).toBe("skipped");
   });
 
   it("completes every entered stage and reports real elapsed time on final_result", () => {

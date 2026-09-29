@@ -609,3 +609,6 @@ Codex did not trigger a new browser analysis run to avoid any accidental live pa
 
 **Final Codex recommendation:**
 GREEN — ShipClaw is ready for demo.
+
+## 2026-09-29 — Final engineering pass
+User authorized implementation forward from the redesign. Add explicit evidence provenance/unknown categories and assessor source; replace fake gate with review recording. Preserve UI hierarchy. GitHub reads only, no remote code execution.

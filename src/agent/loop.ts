@@ -5,9 +5,9 @@
  * 17-state machine. Emits all 14 AgentEvent types (state_entered once per state).
  * Deterministic score is computed BEFORE Nemotron is called.
  * Memory captured before + after; diff written to artifact dir.
- * All risky writes gated on approval.
+ * Read-only repository analysis. Proposed-action review never executes actions.
  */
-import { mkdirSync, appendFileSync } from "fs";
+import { mkdirSync, appendFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import { nanoid } from "nanoid";
 import type {
@@ -24,13 +24,12 @@ import type {
 } from "../shared/types.js";
 import { getDb, type IDb } from "../storage/db.js";
 import { MemoryManager, MEMORY_KEYS } from "./memory.js";
-import { calculateReadinessScore } from "./scorer.js";
+import { calculateReadinessScore, decisionForScore } from "./scorer.js";
 import { buildRiskFingerprint } from "./riskFingerprint.js";
 import { estimateTimeToShip } from "./timeToShip.js";
 import { assess } from "./assessor.js";
-import { getRepoBundle } from "../tools/github.js";
+import { getRepoBundle, type RepoBundle } from "../tools/github.js";
 import { scanImportantFiles } from "../tools/repo.js";
-import { runSafeCommand } from "../tools/shell.js";
 import { searchExternalEvidence, assessmentNeedsExternalEvidence, buildExaQueries } from "../tools/exa.js";
 import { generateReport } from "./report.js";
 import { EXA_ENABLED, DEMO_BANNER, FALLBACK_BANNER } from "../shared/constants.js";
@@ -42,6 +41,7 @@ type LoopState = AgentState;
 // ─── Loop Config ──────────────────────────────────────────────────────────────
 
 export interface LoopConfig {
+  demo?: boolean;
   goal: string;
   repo: string;
   autoApproveLocal?: boolean;   // true in demo/test mode
@@ -66,9 +66,8 @@ export interface LoopResult {
 export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
   const db = getDb();
   const runId = config.runId ?? nanoid(12);
-  const isDemoMode = process.env["DEMO_MODE"] === "true";
-  const isLive = !isDemoMode && process.env["ALLOW_LLM_FALLBACK"] !== "true";
-  const mode = isDemoMode ? "demo" : isLive ? "live" : "fallback";
+  const isDemoMode = config.demo ?? process.env["DEMO_MODE"] === "true";
+  const mode = isDemoMode ? "demo" : "live";
   const artifactDir = resolve("runs", runId);
 
   mkdirSync(artifactDir, { recursive: true });
@@ -87,7 +86,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
   db.audit(runId, "system", "run_created", `goal=${config.goal} repo=${config.repo} mode=${mode}`);
 
   if (isDemoMode) console.log("\n" + DEMO_BANNER);
-  if (mode === "fallback") console.log("\n" + FALLBACK_BANNER);
+
 
   const emit = (event: AgentEvent) => {
     db.insertEvent(event);
@@ -102,6 +101,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
   let memoryBefore!: MemorySnapshot;
   let priorRunCount = 0;
   let observations: import("../shared/types.js").Observation[] = [];
+  let bundle!: RepoBundle;
   let score!: ReadinessScore;
   let riskFingerprint!: RiskFingerprint;
   let timeToShip!: TimeToShipEstimate;
@@ -149,20 +149,20 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
           steps: [
             "Fetch GitHub repository metadata",
             "Scan important files in repo",
-            "Run safe checks (typecheck, test)",
+            "Record checks not run (read-only analysis)",
             "Calculate deterministic readiness score",
             "Build Release Risk Fingerprint",
             "Estimate time-to-ship",
             EXA_ENABLED ? "Fetch optional Exa external evidence" : "Skip Exa (disabled)",
             "Assess with Nemotron (explains score, does not invent it)",
-            "Propose approval-gated actions",
+            "Propose actions for review; no execution",
             "Update memory and write artifacts",
           ],
           estimatedSteps: 10,
           constraints: [
             mode === "demo" ? "DEMO MODE — fixture data" : "LIVE MODE",
             EXA_ENABLED ? "Exa enabled (max 3 searches)" : "Exa disabled",
-            config.autoApproveLocal ? "Auto-approve local non-risky actions" : "Manual approval required",
+            config.autoApproveLocal ? "Automatically record proposal acceptance; no execution" : "Review records decisions only; no execution",
           ],
         };
         emit({ type: "plan_created", runId, ts: ts(), plan });
@@ -175,12 +175,13 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
         emit({ type: "tool_call_started", runId, ts: ts(), tool: "github.getRepoBundle", args: { repo: config.repo } });
         const t0 = Date.now();
         try {
-          const bundle = await getRepoBundle(config.repo);
+          bundle = await getRepoBundle(config.repo, { demo: isDemoMode });
           observations.push(...bundle.observations);
           emit({ type: "tool_call_finished", runId, ts: ts(), tool: "github.getRepoBundle", durationMs: Date.now() - t0, success: true });
         } catch (err) {
           emit({ type: "tool_call_finished", runId, ts: ts(), tool: "github.getRepoBundle", durationMs: Date.now() - t0, success: false });
           db.audit(runId, "agent", "github_fetch_error", String(err));
+          throw err;
         }
         state = "SCAN_REPO";
         break;
@@ -191,8 +192,11 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
         emit({ type: "tool_call_started", runId, ts: ts(), tool: "repo.scanImportantFiles", args: { repo: config.repo } });
         const t0 = Date.now();
         try {
-          const scan = await scanImportantFiles(config.repo);
+          const scan = await scanImportantFiles(bundle);
           observations.push(...scan.observations);
+          bundle.observations = observations;
+          writeFileSync(resolve(artifactDir, "evidence.json"), JSON.stringify({ ...bundle, scan }, null, 2));
+          emit({ type: "repository_evidence", runId, ts: ts(), evidence: bundle });
           emit({ type: "tool_call_finished", runId, ts: ts(), tool: "repo.scanImportantFiles", durationMs: Date.now() - t0, success: true });
         } catch (err) {
           emit({ type: "tool_call_finished", runId, ts: ts(), tool: "repo.scanImportantFiles", durationMs: Date.now() - t0, success: false });
@@ -204,15 +208,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
 
       // ── RUN_SAFE_CHECKS ───────────────────────────────────────────────────
       case "RUN_SAFE_CHECKS": {
-        for (const cmd of ["npm run typecheck", "npm test"]) {
-          emit({ type: "tool_call_started", runId, ts: ts(), tool: "shell.runSafeCommand", args: { command: cmd } });
-          const t0 = Date.now();
-          const result = await runSafeCommand(cmd);
-          emit({ type: "tool_call_finished", runId, ts: ts(), tool: "shell.runSafeCommand", durationMs: Date.now() - t0, success: result.exitCode === 0 });
-          if (result.exitCode !== 0) {
-            observations.push({ category: "ci_health", signal: cmd, value: "failing", weight: 0.25, source: "shell" });
-          }
-        }
+        db.audit(runId, "agent", "checks_unmeasured", "Read-only analysis: tests, typecheck and repository scripts were not executed.");
         state = "CALCULATE_SCORE";
         break;
       }
@@ -253,7 +249,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
       case "OPTIONAL_EXA_EXTERNAL_EVIDENCE": {
         let evidenceCount = 0;
         const exaApiKey = process.env["EXA_API_KEY"];
-        const needsExternal = EXA_ENABLED && !!exaApiKey && assessmentNeedsExternalEvidence(observations, score);
+        const needsExternal = !isDemoMode && EXA_ENABLED && !!exaApiKey && assessmentNeedsExternalEvidence(observations, score);
 
         if (needsExternal) {
           // Prefer queries derived from score/observations over raw risk signals
@@ -277,7 +273,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
           db.audit(runId, "system", "exa_skipped", "no uncertainty signals detected");
         }
 
-        emit({ type: "external_evidence_status", runId, ts: ts(), enabled: EXA_ENABLED, count: evidenceCount });
+        emit({ type: "external_evidence_status", runId, ts: ts(), enabled: !isDemoMode && EXA_ENABLED, count: evidenceCount });
         state = "ASSESS_WITH_NEMOTRON";
         break;
       }
@@ -296,7 +292,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
           });
           db.updateRun(runId, { assessorOutput: assessorOutput ?? undefined });
         } catch (err) {
-          db.audit(runId, "agent", "assessor_error", String(err));
+          db.audit(runId, "agent", "assessor_error", "Assessor unavailable; no valid model explanation returned.");
           assessorOutput = null;
         }
         state = "PROPOSE_ACTIONS";
@@ -307,7 +303,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
       case "PROPOSE_ACTIONS": {
         pendingActions = assessorOutput?.recommendedActions?.slice(0, 3) ?? [];
         if (pendingActions.length === 0) {
-          state = "EXECUTE_APPROVED_ACTIONS"; // nothing to approve
+          state = "COMPLETE_READ_ONLY"; // nothing to approve
         } else {
           // Create approval request for non-trivial actions
           const approval: Approval = {
@@ -319,15 +315,15 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
             requestedAt: new Date().toISOString(),
           };
           db.createApproval(approval);
-          db.updateRun(runId, { status: "awaiting_approval" });
+
           emit({ type: "approval_requested", runId, ts: ts(), approval });
-          state = "WAIT_FOR_APPROVAL";
+          state = "RECORD_REVIEW";
         }
         break;
       }
 
-      // ── WAIT_FOR_APPROVAL ─────────────────────────────────────────────────
-      case "WAIT_FOR_APPROVAL": {
+      // ── RECORD_REVIEW ─────────────────────────────────────────────────
+      case "RECORD_REVIEW": {
         const pending = db.getPendingApprovals(runId);
         for (const approval of pending) {
           if (config.autoApproveLocal) {
@@ -341,20 +337,13 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
             db.audit(runId, "system", "auto_approved", approval.id);
             emit({ type: "approval_resolved", runId, ts: ts(), approval: resolved });
           }
-          // In real usage: UI calls POST /api/approvals/:id/approve
-          // Loop polls until all resolved
         }
-        state = "EXECUTE_APPROVED_ACTIONS";
+        state = "COMPLETE_READ_ONLY";
         break;
       }
 
-      // ── EXECUTE_APPROVED_ACTIONS ──────────────────────────────────────────
-      case "EXECUTE_APPROVED_ACTIONS": {
-        const approvals = db.getPendingApprovals(runId);
-        const allApproved = approvals.every((a) => a.status === "approved");
-        if (allApproved || approvals.length === 0) {
-          db.audit(runId, "agent", "actions_executed", `${pendingActions.length} actions recorded`);
-        }
+      case "COMPLETE_READ_ONLY": {
+        db.audit(runId, "agent", "proposals_recorded", `${pendingActions.length} proposed actions; no repository actions executed. Review is optional and does not pause analysis.`);
         state = "UPDATE_MEMORY";
         break;
       }
@@ -363,7 +352,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
       case "UPDATE_MEMORY": {
         memoryManager.recordRunCompletion(
           score.total,
-          assessorOutput?.decision ?? "unknown"
+          decisionForScore(score)
         );
         memoryManager.set(
           MEMORY_KEYS.repoLastSeen(config.repo),
@@ -411,7 +400,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
     riskFingerprint,
     timeToShip,
     assessorOutput: assessorOutput ?? undefined,
-    finalDecision: assessorOutput?.decision ?? (score.total >= 71 ? "ship" : "hold"),
+    finalDecision: decisionForScore(score),
     artifactDir,
   };
 

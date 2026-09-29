@@ -11,14 +11,11 @@ export const SCORE_BAND_THRESHOLDS = {
   READY: { min: 71, max: 100 },
 } as const;
 
-/** total >= SHIP_THRESHOLD → "ship" (enforced in assessor.ts and loop.ts) */
+/** SHIP also requires all weighted categories measured (decisionForScore). */
 export const SHIP_THRESHOLD = SCORE_BAND_THRESHOLDS.READY.min;
 
 /** A category passes at rawScore >= CATEGORY_PASS_THRESHOLD (mirrors scorer.ts) */
 export const CATEGORY_PASS_THRESHOLD = 60;
-
-/** Score used by scorer.ts when a category has no observations */
-export const NO_EVIDENCE_DEFAULT_SCORE = 50;
 
 // ─── Score Category Weights ───────────────────────────────────────────────────
 // Must sum to 1.0. Codex scorer must use these weights exactly.
@@ -42,11 +39,3 @@ export const MINUTES_PER_HIGH_BLOCKER = 45;
 export const MINUTES_PER_MEDIUM_BLOCKER = 20;
 /** Buffer multiplier for range max */
 export const TIME_BUFFER_MULTIPLIER = 1.5;
-
-// ─── Evidence source ──────────────────────────────────────────────────────────
-/**
- * Where repository evidence comes from today. src/tools/github.ts, repo.ts and shell.ts
- * return built-in fixture data in every mode until live collection (X-005) lands.
- * Flip to "live" only when those tools make real calls.
- */
-export const EVIDENCE_SOURCE: "fixture" | "live" = "fixture";

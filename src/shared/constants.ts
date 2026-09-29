@@ -76,8 +76,7 @@ export const EXA_TIMEOUT_MS =
 
 // ─── Fallback Labels ──────────────────────────────────────────────────────────
 export const FALLBACK_BANNER =
-  "⚠️  SYNTHETIC FALLBACK MODE — Score and evidence are illustrative. " +
-  "Run with DEMO_MODE=false and a real NEMOTRON_API_KEY for live analysis.";
+  "Deterministic explanation fallback — no model confidence. Evidence source is recorded separately.";
 
 export const DEMO_BANNER =
-  "🔬 DEMO MODE — Using fixture data instead of live GitHub/shell calls.";
+  "DEMO MODE — Synthetic sample evidence. No GitHub requests or repository execution.";

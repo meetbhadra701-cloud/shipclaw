@@ -8,6 +8,7 @@
  */
 import { z } from "zod";
 import type { AssessorOutput, ReadinessScore, RiskFingerprint, TimeToShipEstimate, ExternalEvidence } from "../shared/types.js";
+import { decisionForScore } from "./scorer.js";
 import { MODE_FALLBACK } from "../shared/constants.js";
 import * as nemotron from "../llm/nemotron.js";
 import {
@@ -30,22 +31,25 @@ const AssessorOutputSchema = z.object({
 
 // ─── Fallback assessor ────────────────────────────────────────────────────────
 
-function fallbackAssess(score: ReadinessScore, goal: string): AssessorOutput {
-  const isShip = score.total >= 71;
-  const failingCats = score.categories.filter((c) => !c.pass);
+function fallbackAssess(score: ReadinessScore, goal: string, reason: AssessorOutput["fallbackReason"]): AssessorOutput {
+  const isShip = decisionForScore(score) === "ship";
+  const failingCats = score.categories.filter((c) => c.measurement !== "unknown" && !c.pass);
 
   return {
     decision: isShip ? "ship" : "hold",
-    confidence: 0.7,
+    confidence: null,
+    source: "deterministic_fallback",
+    fallbackReason: reason,
     explanation: buildFallbackExplanation(score, goal),
     blockers: failingCats.map(
       (c) => `${c.name} scored ${c.rawScore}/100 — ${c.evidence[0] ?? "no evidence"}`
     ),
     recommendedActions: failingCats.slice(0, 3).map(
       (c) => `Improve ${c.name}: address evidence signals`
-    ),
+    ).concat(score.categories.filter(c => c.measurement === "unknown").map(c => `Measure ${c.name}: collect evidence before release`)).slice(0, 3),
     uncertaintyNotes: [
-      "Nemotron was unavailable. This assessment is generated from deterministic score only.",
+      reason === "demo" ? "Sample mode uses a deterministic template; no model was called." : reason === "not_configured" ? "Nemotron is not configured; deterministic template used." : "Nemotron request failed; deterministic template used.",
+      "File-presence signals are proxies, not proof of test quality or security. Unmeasured categories remain unknown.",
     ],
     mode: MODE_FALLBACK,
   };
@@ -54,11 +58,11 @@ function fallbackAssess(score: ReadinessScore, goal: string): AssessorOutput {
 // ─── Live assessor ────────────────────────────────────────────────────────────
 
 export async function assess(ctx: AssessorContext): Promise<AssessorOutput> {
-  const allowFallback = process.env["ALLOW_LLM_FALLBACK"] === "true";
-  const isDemoMode = process.env["DEMO_MODE"] === "true";
+  const allowFallback = process.env["ALLOW_LLM_FALLBACK"] !== "false";
+  const isDemoMode = ctx.score.mode === "demo";
 
-  if (isDemoMode && allowFallback) {
-    return fallbackAssess(ctx.score, ctx.goal);
+  if (isDemoMode) {
+    return fallbackAssess(ctx.score, ctx.goal, "demo");
   }
 
   try {
@@ -76,7 +80,7 @@ export async function assess(ctx: AssessorContext): Promise<AssessorOutput> {
     const parsed = AssessorOutputSchema.parse(raw);
 
     // Enforce: decision must match score threshold (Nemotron cannot override)
-    const expectedDecision: "ship" | "hold" = ctx.score.total >= 71 ? "ship" : "hold";
+    const expectedDecision: "ship" | "hold" = decisionForScore(ctx.score);
     if (parsed.decision !== expectedDecision) {
       parsed.decision = expectedDecision;
       parsed.uncertaintyNotes.push(
@@ -84,11 +88,11 @@ export async function assess(ctx: AssessorContext): Promise<AssessorOutput> {
       );
     }
 
-    return { ...parsed, mode: ctx.score.mode };
+    return { ...parsed, source: "nemotron", mode: "live" };
   } catch (err) {
     if (!allowFallback) throw err;
-    console.warn("[assessor] Nemotron error, using fallback:", String(err));
-    return fallbackAssess(ctx.score, ctx.goal);
+    console.warn("[assessor] Nemotron unavailable; using deterministic fallback.");
+    return fallbackAssess(ctx.score, ctx.goal, process.env["NEMOTRON_API_KEY"] ? "request_failed" : "not_configured");
   }
 }
 

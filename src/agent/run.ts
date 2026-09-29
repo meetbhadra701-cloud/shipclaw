@@ -1,16 +1,15 @@
+import "../shared/env.js";
 /**
  * ShipClaw — CLI Entry Point
  * Usage: npm run agent:run -- --repo <url> --goal "<text>" [--demo] [--auto-approve-local]
  *
  * Shared file — log changes in COMMUNICATION_LOG.md.
  */
-import { config as loadEnv } from "dotenv";
 import { runAgentLoop } from "./loop.js";
 import type { AgentEvent } from "../shared/types.js";
 
 // Load .env.local first, then .env
-loadEnv({ path: ".env.local" });
-loadEnv({ path: ".env" });
+
 
 // ─── Parse CLI args ───────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -30,11 +29,11 @@ const demo = hasFlag("--demo");
 const autoApproveLocal = hasFlag("--auto-approve-local");
 
 if (!repo) {
-  console.error("Usage: npm run agent:run -- --repo <url-or-path> --goal \"<text>\" [--demo] [--auto-approve-local]");
+  console.error("Usage: npm run agent:run -- --repo <public-github-url> --goal \"<text>\" [--demo] [--auto-approve-local]");
   process.exit(1);
 }
 
-if (demo) process.env["DEMO_MODE"] = "true";
+
 
 // ─── Event printer ────────────────────────────────────────────────────────────
 
@@ -69,7 +68,7 @@ function printEvent(event: AgentEvent): void {
       console.log(`${tag} Exa ${event.enabled ? `enabled, ${event.count} results` : "disabled"}`);
       break;
     case "approval_requested":
-      console.log(`${tag} Approval needed: ${event.approval.actionDescription.slice(0, 60)}…`);
+      console.log(`${tag} Proposed-action review: ${event.approval.actionDescription.slice(0, 60)}…`);
       break;
     case "approval_resolved":
       console.log(`${tag} Approval ${event.approval.status} by ${event.approval.resolvedBy}`);
@@ -91,6 +90,7 @@ console.log(`   Goal: ${goal}`);
 console.log(`   Mode: ${demo ? "demo" : "live"} | Auto-approve: ${autoApproveLocal}\n`);
 
 runAgentLoop({
+  demo,
   goal,
   repo,
   autoApproveLocal,

@@ -3,17 +3,19 @@
  * Claude-primary file. 9 required routes from the manual.
  */
 import type { Express, Request, Response } from "express";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, appendFileSync } from "fs";
 import { resolve } from "path";
 import { nanoid } from "nanoid";
 import { runAgentLoop } from "../agent/loop.js";
 import { getDb } from "../storage/db.js";
 import { EXA_ENABLED } from "../shared/constants.js";
-import { EVIDENCE_SOURCE } from "../shared/heuristics.js";
+import { parseGitHubUrl } from "../tools/github.js";
+import { SqliteDb } from "../storage/db.js";
 import type { AgentEvent } from "../shared/types.js";
 
 /** Artifacts a client may download. Anything else is refused (no path traversal). */
 const ARTIFACT_FILES = [
+  "evidence.json",
   "SHIPCLAW_READINESS.md",
   "github_issue_draft.md",
   "audit.jsonl",
@@ -32,13 +34,14 @@ export function setupRoutes(app: Express): void {
       service: "shipclaw",
       timestamp: new Date().toISOString(),
       mode: process.env["DEMO_MODE"] === "true" ? "demo" : "live",
-      nemotron: process.env["NEMOTRON_API_KEY"] ? "configured" : "fallback",
+      nemotron: process.env["NEMOTRON_API_KEY"] ? "configured" : "unavailable",
+      storage: db instanceof SqliteDb ? "sqlite" : "volatile",
       // Additive, non-secret facts the UI uses to describe a run honestly.
       model: process.env["NEMOTRON_MODEL"] ?? "mistralai/mistral-nemotron",
       // With DEMO_MODE, ALLOW_LLM_FALLBACK=true skips Nemotron entirely (see assessor.ts).
-      llmFallbackAllowed: process.env["ALLOW_LLM_FALLBACK"] === "true",
+      llmFallbackAllowed: process.env["ALLOW_LLM_FALLBACK"] !== "false",
       exa: EXA_ENABLED && !!process.env["EXA_API_KEY"] ? "enabled" : "disabled",
-      evidenceSource: EVIDENCE_SOURCE,
+      evidenceSource: "github",
     });
   });
 
@@ -47,21 +50,24 @@ export function setupRoutes(app: Express): void {
     const { goal, repo, demo, autoApproveLocal } = req.body as {
       goal?: string; repo?: string; demo?: boolean; autoApproveLocal?: boolean;
     };
-    if (!goal || !repo) {
+    if (typeof goal !== "string" || !goal.trim() || goal.length > 1000 || typeof repo !== "string" || !repo.trim() || repo.length > 300 || (demo !== undefined && typeof demo !== "boolean") || (autoApproveLocal !== undefined && typeof autoApproveLocal !== "boolean")) {
       res.status(400).json({ error: "goal and repo are required" });
       return;
     }
-    if (demo) process.env["DEMO_MODE"] = "true";
+    if (!demo) {
+      try { parseGitHubUrl(repo); } catch (err) { res.status(400).json({ error: (err as Error).message }); return; }
+    }
 
     // Assign the ID here so the response can never point at a different, concurrent run.
     const runId = nanoid(12);
     runAgentLoop({
       goal,
-      repo,
+      repo: demo ? "https://github.com/acme/payments-api" : repo,
+      demo: demo === true,
       runId,
       autoApproveLocal: autoApproveLocal ?? false,
     }).catch((err: unknown) => {
-      console.error("Run error:", err);
+      console.error("Run failed; details recorded in run status.");
       // Mark the run as failed so the SSE stream terminates and clients can show the error.
       if (db.getRun(runId)) {
         db.updateRun(runId, { status: "error", errorMessage: String(err).slice(0, 500) });
@@ -109,6 +115,7 @@ export function setupRoutes(app: Express): void {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
+    if (!db.getRun(runId)) { res.status(404).end(); return; }
     const events = db.getEvents(runId);
     for (const event of events) {
       res.write(`data: ${JSON.stringify(event)}\n\n`);
@@ -140,9 +147,14 @@ export function setupRoutes(app: Express): void {
     const id = req.params["id"] ?? "";
     const approval = db.getApproval(id);
     if (!approval) { res.status(404).json({ error: "Approval not found" }); return; }
+    if (approval.status !== "pending") { res.status(409).json({ error: "Review already resolved; the recorded decision cannot be overwritten." }); return; }
     const resolvedAt = new Date().toISOString();
     db.updateApproval(id, { status: "approved", resolvedAt, resolvedBy: "human" });
     db.audit(approval.runId, "human", "approval_approved", `${id}: ${approval.actionDescription}`);
+    const event: AgentEvent = { type: "approval_resolved", runId: approval.runId, ts: resolvedAt, approval: { ...approval, status: "approved", resolvedAt, resolvedBy: "human" } };
+    db.insertEvent(event);
+    const artifactDir = db.getRun(approval.runId)?.artifactDir;
+    if (artifactDir && existsSync(artifactDir)) appendFileSync(resolve(artifactDir, "audit.jsonl"), JSON.stringify(event) + "\n");
     res.json({ success: true, approval: { ...approval, status: "approved", resolvedAt, resolvedBy: "human" } });
   });
 
@@ -151,9 +163,14 @@ export function setupRoutes(app: Express): void {
     const id = req.params["id"] ?? "";
     const approval = db.getApproval(id);
     if (!approval) { res.status(404).json({ error: "Approval not found" }); return; }
+    if (approval.status !== "pending") { res.status(409).json({ error: "Review already resolved; the recorded decision cannot be overwritten." }); return; }
     const resolvedAt = new Date().toISOString();
     db.updateApproval(id, { status: "rejected", resolvedAt, resolvedBy: "human" });
     db.audit(approval.runId, "human", "approval_rejected", `${id}: ${approval.actionDescription}`);
+    const event: AgentEvent = { type: "approval_resolved", runId: approval.runId, ts: resolvedAt, approval: { ...approval, status: "rejected", resolvedAt, resolvedBy: "human" } };
+    db.insertEvent(event);
+    const artifactDir = db.getRun(approval.runId)?.artifactDir;
+    if (artifactDir && existsSync(artifactDir)) appendFileSync(resolve(artifactDir, "audit.jsonl"), JSON.stringify(event) + "\n");
     res.json({ success: true, approval: { ...approval, status: "rejected", resolvedAt, resolvedBy: "human" } });
   });
 
@@ -172,6 +189,7 @@ export function setupRoutes(app: Express): void {
   // ── GET /api/reports/:runId ───────────────────────────────────────────────
   app.get("/api/reports/:runId", (req: Request, res: Response) => {
     const runId = req.params["runId"] ?? "";
+    if (!/^[A-Za-z0-9_-]+$/.test(runId) || !db.getRun(runId)) { res.status(404).json({ error: "Run not found" }); return; }
     const artifactDir = resolve("runs", runId);
     if (!existsSync(artifactDir)) {
       res.status(404).json({ error: "Run artifacts not found" });
@@ -184,6 +202,7 @@ export function setupRoutes(app: Express): void {
   // ── GET /api/reports/:runId/readiness ─────────────────────────────────────
   app.get("/api/reports/:runId/readiness", (req: Request, res: Response) => {
     const runId = req.params["runId"] ?? "";
+    if (!/^[A-Za-z0-9_-]+$/.test(runId) || !db.getRun(runId)) { res.status(404).json({ error: "Run not found" }); return; }
     const mdPath = resolve("runs", runId, "SHIPCLAW_READINESS.md");
     if (!existsSync(mdPath)) {
       res.status(404).json({ error: "Report not generated yet" });

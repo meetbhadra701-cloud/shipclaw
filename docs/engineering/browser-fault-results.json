@@ -1,0 +1,8 @@
+{
+  "source": "Injected GitHub API responses in test-only server",
+  "checks": [
+    "rate-limit: terminal error, no fabricated score, recovery available",
+    "server-failure: terminal error, no fabricated score, recovery available",
+    "Empty evidence: no numeric readiness displayed, six unknown categories, HOLD, no false blockers or ETA, unavailable assessor"
+  ]
+}

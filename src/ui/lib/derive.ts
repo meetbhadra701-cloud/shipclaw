@@ -10,6 +10,7 @@ import {
   type AssessorOutput,
   type MemoryChange,
   type PublicPlan,
+  type RepositoryEvidence,
   type ReadinessScore,
   type ReleaseDecision,
   type RiskFingerprint,
@@ -33,6 +34,7 @@ export interface ToolCall {
 }
 
 export interface DerivedRun {
+  evidence: RepositoryEvidence | null;
   goal: string | null;
   memoryLoaded: { itemCount: number; basedOnMemory: boolean } | null;
   plan: PublicPlan | null;
@@ -66,7 +68,7 @@ function legacyStateFor(e: AgentEvent): AgentState | null {
     case "time_to_ship_estimated": return "ESTIMATE_TIME_TO_SHIP";
     case "external_evidence_status": return "OPTIONAL_EXA_EXTERNAL_EVIDENCE";
     case "approval_requested": return "PROPOSE_ACTIONS";
-    case "approval_resolved": return "WAIT_FOR_APPROVAL";
+    case "approval_resolved": return "RECORD_REVIEW";
     case "memory_updated": return "UPDATE_MEMORY";
     case "final_result": return "FINALIZE";
     default: return null;
@@ -75,6 +77,7 @@ function legacyStateFor(e: AgentEvent): AgentState | null {
 
 export function deriveRun(events: AgentEvent[]): DerivedRun {
   const out: DerivedRun = {
+    evidence: null,
     goal: null,
     memoryLoaded: null,
     plan: null,
@@ -99,6 +102,7 @@ export function deriveRun(events: AgentEvent[]): DerivedRun {
       case "state_entered":
         if (!entered.has(e.state)) entered.set(e.state, e.ts);
         break;
+      case "repository_evidence": out.evidence = e.evidence; break;
       case "goal_received": out.goal = e.goal; break;
       case "memory_loaded": out.memoryLoaded = { itemCount: e.itemCount, basedOnMemory: e.basedOnMemory }; break;
       case "plan_created": out.plan = e.plan; break;
@@ -125,7 +129,7 @@ export function deriveRun(events: AgentEvent[]): DerivedRun {
   }
 
   const complete = out.final !== null;
-  const lastEvent = events[events.length - 1];
+  const lastEvent = [...events].reverse().find(e => e.type === "final_result") ?? events[events.length - 1];
 
   if (entered.size > 0) {
     // Precise path: every state announces itself with a timestamp.
@@ -180,7 +184,7 @@ export const PHASES: Phase[] = [
     states: ["CALCULATE_SCORE", "BUILD_RISK_FINGERPRINT", "ESTIMATE_TIME_TO_SHIP", "OPTIONAL_EXA_EXTERNAL_EVIDENCE"],
   },
   { id: "explain", title: "AI explanation", states: ["ASSESS_WITH_NEMOTRON"] },
-  { id: "control", title: "Human control", states: ["PROPOSE_ACTIONS", "WAIT_FOR_APPROVAL", "EXECUTE_APPROVED_ACTIONS"] },
+  { id: "control", title: "Proposal review", states: ["PROPOSE_ACTIONS", "RECORD_REVIEW", "COMPLETE_READ_ONLY"] },
   { id: "record", title: "Record", states: ["UPDATE_MEMORY", "WRITE_ARTIFACTS", "FINALIZE"] },
 ];
 
@@ -190,15 +194,15 @@ export const STATE_LABEL: Record<AgentState, { done: string; active: string }> =
   PLAN: { done: "Plan created", active: "Planning" },
   FETCH_GITHUB_DATA: { done: "Repository metadata collected", active: "Collecting repository metadata" },
   SCAN_REPO: { done: "Repository files scanned", active: "Scanning repository files" },
-  RUN_SAFE_CHECKS: { done: "Safe checks completed", active: "Running safe checks" },
+  RUN_SAFE_CHECKS: { done: "Execution checks unmeasured", active: "Recording unmeasured checks" },
   CALCULATE_SCORE: { done: "Readiness score calculated", active: "Calculating readiness score" },
   BUILD_RISK_FINGERPRINT: { done: "Release risks identified", active: "Identifying release risks" },
   ESTIMATE_TIME_TO_SHIP: { done: "Time to ship estimated", active: "Estimating time to ship" },
   OPTIONAL_EXA_EXTERNAL_EVIDENCE: { done: "External evidence checked", active: "Checking external evidence" },
   ASSESS_WITH_NEMOTRON: { done: "Explanation generated", active: "Explaining the score" },
   PROPOSE_ACTIONS: { done: "Actions proposed", active: "Proposing actions" },
-  WAIT_FOR_APPROVAL: { done: "Approval requested", active: "Requesting approval" },
-  EXECUTE_APPROVED_ACTIONS: { done: "Approved actions recorded", active: "Recording approved actions" },
+  RECORD_REVIEW: { done: "Review request recorded", active: "Recording review request" },
+  COMPLETE_READ_ONLY: { done: "Read-only analysis confirmed", active: "Completing read-only analysis" },
   UPDATE_MEMORY: { done: "Memory updated", active: "Updating memory" },
   WRITE_ARTIFACTS: { done: "Report and artifacts written", active: "Writing report and artifacts" },
   FINALIZE: { done: "Verdict finalized", active: "Finalizing verdict" },

@@ -1,0 +1,1042 @@
+{
+  "checks": [
+    "Hello-World has real evidence",
+    "Express has different pinned evidence and score",
+    "read-only checks absent",
+    "fallback source and confidence honest",
+    "unknown category visibly shown",
+    "approval recorded without execution",
+    "human review visible in audit",
+    "evidence links, limitations and source visible",
+    "keyboard tab navigation",
+    "desktop-dark theme toggle",
+    "desktop-dark no horizontal page overflow",
+    "laptop-light theme toggle",
+    "laptop-light no horizontal page overflow",
+    "mobile-dark theme toggle",
+    "mobile-dark no horizontal page overflow",
+    "mobile-light theme toggle",
+    "mobile-light no horizontal page overflow",
+    "reduced motion enabled",
+    "sample explicit, separate from live",
+    "rejection recorded",
+    "invalid URL shown inline",
+    "nonexistent repository ends with actionable error",
+    "no browser exceptions"
+  ],
+  "errors": [],
+  "liveModel": "Not tested: no credentials configured",
+  "runs": [
+    {
+      "id": "HNsy9ET036wD",
+      "repo": "https://github.com/octocat/Hello-World",
+      "score": {
+        "deterministic": true,
+        "evidenceCoverage": 0.7,
+        "possibleTotal": 71,
+        "total": 41,
+        "band": "RISKY",
+        "status": "risky",
+        "categories": [
+          {
+            "name": "ci_health",
+            "measurement": "measured",
+            "weight": 0.25,
+            "rawScore": 100,
+            "weightedScore": 25,
+            "evidence": [
+              "github ci_health.ci_status=passing -> 100/100"
+            ],
+            "pass": true
+          },
+          {
+            "name": "test_coverage",
+            "measurement": "measured",
+            "weight": 0.2,
+            "rawScore": 0,
+            "weightedScore": 0,
+            "evidence": [
+              "repo_scan test_coverage.test_file_count=0 -> 0/100"
+            ],
+            "pass": false
+          },
+          {
+            "name": "open_blockers",
+            "measurement": "unknown",
+            "weight": 0.2,
+            "rawScore": 0,
+            "weightedScore": 0,
+            "evidence": [
+              "Unmeasured release_blocker_triage: Issue and PR counts do not identify release-blocking work."
+            ],
+            "pass": false
+          },
+          {
+            "name": "documentation",
+            "measurement": "measured",
+            "weight": 0.15,
+            "rawScore": 70,
+            "weightedScore": 10.5,
+            "evidence": [
+              "repo_scan documentation.has_readme=true -> 100/100",
+              "repo_scan documentation.has_changelog=false -> 40/100"
+            ],
+            "pass": true
+          },
+          {
+            "name": "security",
+            "measurement": "measured",
+            "weight": 0.1,
+            "rawScore": 50,
+            "weightedScore": 5,
+            "evidence": [
+              "repo_scan security.has_security_policy=false -> 50/100"
+            ],
+            "pass": false
+          },
+          {
+            "name": "dependency_freshness",
+            "measurement": "unknown",
+            "weight": 0.1,
+            "rawScore": 0,
+            "weightedScore": 0,
+            "evidence": [
+              "Unmeasured outdated_major: Dependency freshness unmeasured; 0 manifest indicator(s), lockfile absent. No package installation or registry audit performed."
+            ],
+            "pass": false
+          }
+        ],
+        "mode": "live",
+        "computedAt": "2026-09-29T23:19:55.041Z"
+      },
+      "assessor": {
+        "decision": "hold",
+        "confidence": null,
+        "source": "deterministic_fallback",
+        "fallbackReason": "not_configured",
+        "explanation": "Goal: Prepare the next production release\nScore: 41/100 evidence points — deterministic template.\nDecision: HOLD (requires 71/100 and all categories measured).\nUnknown categories: open_blockers, dependency_freshness.\nFailing categories: test_coverage, security. Address these before release.",
+        "blockers": [
+          "test_coverage scored 0/100 — repo_scan test_coverage.test_file_count=0 -> 0/100",
+          "security scored 50/100 — repo_scan security.has_security_policy=false -> 50/100"
+        ],
+        "recommendedActions": [
+          "Improve test_coverage: address evidence signals",
+          "Improve security: address evidence signals",
+          "Measure open_blockers: collect evidence before release"
+        ],
+        "uncertaintyNotes": [
+          "Nemotron is not configured; deterministic template used.",
+          "File-presence signals are proxies, not proof of test quality or security. Unmeasured categories remain unknown."
+        ],
+        "mode": "fallback"
+      },
+      "evidence": {
+        "owner": "octocat",
+        "repo": "Hello-World",
+        "source": "github",
+        "repository": "https://github.com/octocat/Hello-World",
+        "collectedAt": "2026-09-29T23:19:54.585Z",
+        "defaultBranch": "master",
+        "latestCommitSha": "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
+        "latestCommitDate": "2012-03-06T23:06:50Z",
+        "openIssueCount": 5997,
+        "openPRCount": 1248,
+        "hasCI": false,
+        "ciStatus": "passing",
+        "filePaths": [
+          "README"
+        ],
+        "treeComplete": true,
+        "observations": [
+          {
+            "category": "ci_health",
+            "signal": "ci_status",
+            "value": "passing",
+            "status": "measured",
+            "weight": 0.25,
+            "source": "github",
+            "url": "https://github.com/octocat/Hello-World/actions"
+          },
+          {
+            "category": "open_blockers",
+            "signal": "release_blocker_triage",
+            "value": "unknown",
+            "status": "unknown",
+            "reason": "Issue and PR counts do not identify release-blocking work.",
+            "weight": 0.2,
+            "source": "github"
+          },
+          {
+            "category": "documentation",
+            "signal": "has_readme",
+            "value": true,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/octocat/Hello-World/tree/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"
+          },
+          {
+            "category": "documentation",
+            "signal": "has_changelog",
+            "value": false,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/octocat/Hello-World/tree/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"
+          },
+          {
+            "category": "test_coverage",
+            "signal": "test_file_count",
+            "value": 0,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/octocat/Hello-World/tree/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"
+          },
+          {
+            "category": "security",
+            "signal": "has_security_policy",
+            "value": false,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/octocat/Hello-World/tree/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"
+          },
+          {
+            "category": "dependency_freshness",
+            "signal": "outdated_major",
+            "value": "unknown",
+            "status": "unknown",
+            "reason": "Dependency freshness unmeasured; 0 manifest indicator(s), lockfile absent. No package installation or registry audit performed.",
+            "source": "repo_scan",
+            "weight": 0.1
+          }
+        ],
+        "limitations": [
+          "No repository code was executed. Test results, coverage, typecheck, vulnerabilities, exposed secrets, and dependency freshness are unmeasured.",
+          "Open issue and PR counts are context, not proof of release blockers. Release-specific blocker triage is unmeasured.",
+          "File names indicate presence only, not documentation quality, effective tests, or security assurance. External CI providers and inherited organization policies are not inspected.",
+          "CI status summarizes the latest observed run per workflow at the inspected commit; it does not prove all required workflows ran or branch protection passed."
+        ],
+        "actionsRuns": [
+          {
+            "name": "Running Copilot Code Review",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/octocat/Hello-World/actions/runs/35184313404",
+            "headSha": "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"
+          }
+        ],
+        "scan": {
+          "hasReadme": true,
+          "hasChangelog": false,
+          "hasSecurityPolicy": false,
+          "hasLockFile": false,
+          "hasTests": false,
+          "testFileCount": 0,
+          "dependencyManifests": [],
+          "observations": [
+            {
+              "category": "documentation",
+              "signal": "has_readme",
+              "value": true,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/octocat/Hello-World/tree/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"
+            },
+            {
+              "category": "documentation",
+              "signal": "has_changelog",
+              "value": false,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/octocat/Hello-World/tree/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"
+            },
+            {
+              "category": "test_coverage",
+              "signal": "test_file_count",
+              "value": 0,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/octocat/Hello-World/tree/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"
+            },
+            {
+              "category": "security",
+              "signal": "has_security_policy",
+              "value": false,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/octocat/Hello-World/tree/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"
+            },
+            {
+              "category": "dependency_freshness",
+              "signal": "outdated_major",
+              "value": "unknown",
+              "status": "unknown",
+              "reason": "Dependency freshness unmeasured; 0 manifest indicator(s), lockfile absent. No package installation or registry audit performed.",
+              "source": "repo_scan",
+              "weight": 0.1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "lCRLo5WB2tkr",
+      "repo": "https://github.com/expressjs/express",
+      "score": {
+        "deterministic": true,
+        "evidenceCoverage": 0.7,
+        "possibleTotal": 93,
+        "total": 63,
+        "band": "RISKY",
+        "status": "risky",
+        "categories": [
+          {
+            "name": "ci_health",
+            "measurement": "measured",
+            "weight": 0.25,
+            "rawScore": 100,
+            "weightedScore": 25,
+            "evidence": [
+              "github ci_health.ci_status=passing -> 100/100"
+            ],
+            "pass": true
+          },
+          {
+            "name": "test_coverage",
+            "measurement": "measured",
+            "weight": 0.2,
+            "rawScore": 90,
+            "weightedScore": 18,
+            "evidence": [
+              "repo_scan test_coverage.test_file_count=112 -> 90/100"
+            ],
+            "pass": true
+          },
+          {
+            "name": "open_blockers",
+            "measurement": "unknown",
+            "weight": 0.2,
+            "rawScore": 0,
+            "weightedScore": 0,
+            "evidence": [
+              "Unmeasured release_blocker_triage: Issue and PR counts do not identify release-blocking work."
+            ],
+            "pass": false
+          },
+          {
+            "name": "documentation",
+            "measurement": "measured",
+            "weight": 0.15,
+            "rawScore": 100,
+            "weightedScore": 15,
+            "evidence": [
+              "repo_scan documentation.has_readme=true -> 100/100",
+              "repo_scan documentation.has_changelog=true -> 100/100"
+            ],
+            "pass": true
+          },
+          {
+            "name": "security",
+            "measurement": "measured",
+            "weight": 0.1,
+            "rawScore": 50,
+            "weightedScore": 5,
+            "evidence": [
+              "repo_scan security.has_security_policy=false -> 50/100"
+            ],
+            "pass": false
+          },
+          {
+            "name": "dependency_freshness",
+            "measurement": "unknown",
+            "weight": 0.1,
+            "rawScore": 0,
+            "weightedScore": 0,
+            "evidence": [
+              "Unmeasured outdated_major: Dependency freshness unmeasured; 1 manifest indicator(s), lockfile absent. No package installation or registry audit performed."
+            ],
+            "pass": false
+          }
+        ],
+        "mode": "live",
+        "computedAt": "2026-09-29T23:19:56.822Z"
+      },
+      "assessor": {
+        "decision": "hold",
+        "confidence": null,
+        "source": "deterministic_fallback",
+        "fallbackReason": "not_configured",
+        "explanation": "Goal: Prepare the next production release\nScore: 63/100 evidence points — deterministic template.\nDecision: HOLD (requires 71/100 and all categories measured).\nUnknown categories: open_blockers, dependency_freshness.\nFailing categories: security. Address these before release.",
+        "blockers": [
+          "security scored 50/100 — repo_scan security.has_security_policy=false -> 50/100"
+        ],
+        "recommendedActions": [
+          "Improve security: address evidence signals",
+          "Measure open_blockers: collect evidence before release",
+          "Measure dependency_freshness: collect evidence before release"
+        ],
+        "uncertaintyNotes": [
+          "Nemotron is not configured; deterministic template used.",
+          "File-presence signals are proxies, not proof of test quality or security. Unmeasured categories remain unknown."
+        ],
+        "mode": "fallback"
+      },
+      "evidence": {
+        "owner": "expressjs",
+        "repo": "express",
+        "source": "github",
+        "repository": "https://github.com/expressjs/express",
+        "collectedAt": "2026-09-29T23:19:56.294Z",
+        "defaultBranch": "master",
+        "latestCommitSha": "7ef98448f8b38099ab1ded55e458538ad47a51e7",
+        "latestCommitDate": "2026-09-29T04:59:24Z",
+        "openIssueCount": 106,
+        "openPRCount": 129,
+        "hasCI": true,
+        "ciStatus": "passing",
+        "filePaths": [
+          ".editorconfig",
+          ".eslintignore",
+          ".eslintrc.yml",
+          ".github/dependabot.yml",
+          ".github/workflows/ci.yml",
+          ".github/workflows/codeql.yml",
+          ".github/workflows/legacy.yml",
+          ".github/workflows/npm-publish.yml",
+          ".github/workflows/scorecard.yml",
+          ".gitignore",
+          ".npmrc",
+          "History.md",
+          "LICENSE",
+          "Readme.md",
+          "examples/README.md",
+          "examples/auth/index.js",
+          "examples/auth/views/foot.ejs",
+          "examples/auth/views/head.ejs",
+          "examples/auth/views/login.ejs",
+          "examples/content-negotiation/db.js",
+          "examples/content-negotiation/index.js",
+          "examples/content-negotiation/users.js",
+          "examples/cookie-sessions/index.js",
+          "examples/cookies/index.js",
+          "examples/downloads/files/CCTV大赛上海分赛区.txt",
+          "examples/downloads/files/amazing.txt",
+          "examples/downloads/files/notes/groceries.txt",
+          "examples/downloads/index.js",
+          "examples/ejs/index.js",
+          "examples/ejs/public/stylesheets/style.css",
+          "examples/ejs/views/footer.html",
+          "examples/ejs/views/header.html",
+          "examples/ejs/views/users.html",
+          "examples/error-pages/index.js",
+          "examples/error-pages/views/404.ejs",
+          "examples/error-pages/views/500.ejs",
+          "examples/error-pages/views/error_header.ejs",
+          "examples/error-pages/views/footer.ejs",
+          "examples/error-pages/views/index.ejs",
+          "examples/error/index.js",
+          "examples/hello-world/index.js",
+          "examples/markdown/index.js",
+          "examples/markdown/views/index.md",
+          "examples/multi-router/controllers/api_v1.js",
+          "examples/multi-router/controllers/api_v2.js",
+          "examples/multi-router/index.js",
+          "examples/mvc/controllers/main/index.js",
+          "examples/mvc/controllers/pet/index.js",
+          "examples/mvc/controllers/pet/views/edit.ejs",
+          "examples/mvc/controllers/pet/views/show.ejs",
+          "examples/mvc/controllers/user-pet/index.js",
+          "examples/mvc/controllers/user/index.js",
+          "examples/mvc/controllers/user/views/edit.hbs",
+          "examples/mvc/controllers/user/views/list.hbs",
+          "examples/mvc/controllers/user/views/show.hbs",
+          "examples/mvc/db.js",
+          "examples/mvc/index.js",
+          "examples/mvc/lib/boot.js",
+          "examples/mvc/public/style.css",
+          "examples/mvc/views/404.ejs",
+          "examples/mvc/views/5xx.ejs",
+          "examples/online/index.js",
+          "examples/params/index.js",
+          "examples/resource/index.js",
+          "examples/route-map/index.js",
+          "examples/route-middleware/index.js",
+          "examples/route-separation/index.js",
+          "examples/route-separation/post.js",
+          "examples/route-separation/public/style.css",
+          "examples/route-separation/site.js",
+          "examples/route-separation/user.js",
+          "examples/route-separation/views/footer.ejs",
+          "examples/route-separation/views/header.ejs",
+          "examples/route-separation/views/index.ejs",
+          "examples/route-separation/views/posts/index.ejs",
+          "examples/route-separation/views/users/edit.ejs",
+          "examples/route-separation/views/users/index.ejs",
+          "examples/route-separation/views/users/view.ejs",
+          "examples/search/index.js",
+          "examples/search/public/client.js",
+          "examples/search/public/index.html",
+          "examples/session/index.js",
+          "examples/session/redis.js",
+          "examples/static-files/index.js",
+          "examples/static-files/public/css/style.css",
+          "examples/static-files/public/hello.txt",
+          "examples/static-files/public/js/app.js",
+          "examples/vhost/index.js",
+          "examples/view-constructor/github-view.js",
+          "examples/view-constructor/index.js",
+          "examples/view-locals/index.js",
+          "examples/view-locals/user.js",
+          "examples/view-locals/views/index.ejs",
+          "examples/web-service/index.js",
+          "index.js",
+          "lib/application.js",
+          "lib/express.js",
+          "lib/request.js",
+          "lib/response.js",
+          "lib/utils.js",
+          "lib/view.js",
+          "package.json",
+          "test/Route.js",
+          "test/Router.js",
+          "test/acceptance/auth.js",
+          "test/acceptance/content-negotiation.js",
+          "test/acceptance/cookie-sessions.js",
+          "test/acceptance/cookies.js",
+          "test/acceptance/downloads.js",
+          "test/acceptance/ejs.js",
+          "test/acceptance/error-pages.js",
+          "test/acceptance/error.js",
+          "test/acceptance/hello-world.js",
+          "test/acceptance/markdown.js",
+          "test/acceptance/multi-router.js",
+          "test/acceptance/mvc.js",
+          "test/acceptance/params.js",
+          "test/acceptance/resource.js",
+          "test/acceptance/route-map.js",
+          "test/acceptance/route-separation.js",
+          "test/acceptance/vhost.js",
+          "test/acceptance/web-service.js",
+          "test/app.all.js",
+          "test/app.engine.js",
+          "test/app.head.js",
+          "test/app.js",
+          "test/app.listen.js",
+          "test/app.locals.js",
+          "test/app.options.js",
+          "test/app.param.js",
+          "test/app.render.js",
+          "test/app.request.js",
+          "test/app.response.js",
+          "test/app.route.js",
+          "test/app.router.js",
+          "test/app.routes.error.js",
+          "test/app.use.js",
+          "test/config.js",
+          "test/exports.js",
+          "test/express.json.js",
+          "test/express.raw.js",
+          "test/express.static.js",
+          "test/express.text.js",
+          "test/express.urlencoded.js",
+          "test/fixtures/% of dogs.txt",
+          "test/fixtures/.name",
+          "test/fixtures/blog/index.html",
+          "test/fixtures/blog/post/index.tmpl",
+          "test/fixtures/broken.send",
+          "test/fixtures/default_layout/name.tmpl",
+          "test/fixtures/default_layout/user.tmpl",
+          "test/fixtures/email.tmpl",
+          "test/fixtures/empty.txt",
+          "test/fixtures/local_layout/user.tmpl",
+          "test/fixtures/name.tmpl",
+          "test/fixtures/name.txt",
+          "test/fixtures/nums.txt",
+          "test/fixtures/pets/names.txt",
+          "test/fixtures/snow ☃/.gitkeep",
+          "test/fixtures/todo.html",
+          "test/fixtures/todo.txt",
+          "test/fixtures/user.html",
+          "test/fixtures/user.tmpl",
+          "test/fixtures/users/index.html",
+          "test/fixtures/users/tobi.txt",
+          "test/middleware.basic.js",
+          "test/regression.js",
+          "test/req.accepts.js",
+          "test/req.acceptsCharsets.js",
+          "test/req.acceptsEncodings.js",
+          "test/req.acceptsLanguages.js",
+          "test/req.baseUrl.js",
+          "test/req.fresh.js",
+          "test/req.get.js",
+          "test/req.host.js",
+          "test/req.hostname.js",
+          "test/req.ip.js",
+          "test/req.ips.js",
+          "test/req.is.js",
+          "test/req.path.js",
+          "test/req.protocol.js",
+          "test/req.query.js",
+          "test/req.range.js",
+          "test/req.route.js",
+          "test/req.secure.js",
+          "test/req.signedCookies.js",
+          "test/req.stale.js",
+          "test/req.subdomains.js",
+          "test/req.xhr.js",
+          "test/res.append.js",
+          "test/res.attachment.js",
+          "test/res.clearCookie.js",
+          "test/res.cookie.js",
+          "test/res.download.js",
+          "test/res.format.js",
+          "test/res.get.js",
+          "test/res.json.js",
+          "test/res.jsonp.js",
+          "test/res.links.js",
+          "test/res.locals.js",
+          "test/res.location.js",
+          "test/res.redirect.js",
+          "test/res.render.js",
+          "test/res.send.js",
+          "test/res.sendFile.js",
+          "test/res.sendStatus.js",
+          "test/res.set.js",
+          "test/res.status.js",
+          "test/res.type.js",
+          "test/res.vary.js",
+          "test/support/env.js",
+          "test/support/tmpl.js",
+          "test/support/utils.js",
+          "test/utils.js"
+        ],
+        "treeComplete": true,
+        "observations": [
+          {
+            "category": "ci_health",
+            "signal": "ci_status",
+            "value": "passing",
+            "status": "measured",
+            "weight": 0.25,
+            "source": "github",
+            "url": "https://github.com/expressjs/express/actions"
+          },
+          {
+            "category": "open_blockers",
+            "signal": "release_blocker_triage",
+            "value": "unknown",
+            "status": "unknown",
+            "reason": "Issue and PR counts do not identify release-blocking work.",
+            "weight": 0.2,
+            "source": "github"
+          },
+          {
+            "category": "documentation",
+            "signal": "has_readme",
+            "value": true,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/expressjs/express/tree/7ef98448f8b38099ab1ded55e458538ad47a51e7"
+          },
+          {
+            "category": "documentation",
+            "signal": "has_changelog",
+            "value": true,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/expressjs/express/tree/7ef98448f8b38099ab1ded55e458538ad47a51e7"
+          },
+          {
+            "category": "test_coverage",
+            "signal": "test_file_count",
+            "value": 112,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/expressjs/express/tree/7ef98448f8b38099ab1ded55e458538ad47a51e7"
+          },
+          {
+            "category": "security",
+            "signal": "has_security_policy",
+            "value": false,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/expressjs/express/tree/7ef98448f8b38099ab1ded55e458538ad47a51e7"
+          },
+          {
+            "category": "dependency_freshness",
+            "signal": "outdated_major",
+            "value": "unknown",
+            "status": "unknown",
+            "reason": "Dependency freshness unmeasured; 1 manifest indicator(s), lockfile absent. No package installation or registry audit performed.",
+            "source": "repo_scan",
+            "weight": 0.1
+          }
+        ],
+        "limitations": [
+          "No repository code was executed. Test results, coverage, typecheck, vulnerabilities, exposed secrets, and dependency freshness are unmeasured.",
+          "Open issue and PR counts are context, not proof of release blockers. Release-specific blocker triage is unmeasured.",
+          "File names indicate presence only, not documentation quality, effective tests, or security assurance. External CI providers and inherited organization policies are not inspected.",
+          "CI status summarizes the latest observed run per workflow at the inspected commit; it does not prove all required workflows ran or branch protection passed."
+        ],
+        "actionsRuns": [
+          {
+            "name": "ci",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/expressjs/express/actions/runs/36524075158",
+            "headSha": "7ef98448f8b38099ab1ded55e458538ad47a51e7"
+          },
+          {
+            "name": "Scorecard supply-chain security",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/expressjs/express/actions/runs/36524075175",
+            "headSha": "7ef98448f8b38099ab1ded55e458538ad47a51e7"
+          },
+          {
+            "name": "CodeQL",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/expressjs/express/actions/runs/36524075312",
+            "headSha": "7ef98448f8b38099ab1ded55e458538ad47a51e7"
+          },
+          {
+            "name": "legacy",
+            "status": "completed",
+            "conclusion": "success",
+            "url": "https://github.com/expressjs/express/actions/runs/36524075154",
+            "headSha": "7ef98448f8b38099ab1ded55e458538ad47a51e7"
+          }
+        ],
+        "scan": {
+          "hasReadme": true,
+          "hasChangelog": true,
+          "hasSecurityPolicy": false,
+          "hasLockFile": false,
+          "hasTests": true,
+          "testFileCount": 112,
+          "dependencyManifests": [
+            "package.json"
+          ],
+          "observations": [
+            {
+              "category": "documentation",
+              "signal": "has_readme",
+              "value": true,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/expressjs/express/tree/7ef98448f8b38099ab1ded55e458538ad47a51e7"
+            },
+            {
+              "category": "documentation",
+              "signal": "has_changelog",
+              "value": true,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/expressjs/express/tree/7ef98448f8b38099ab1ded55e458538ad47a51e7"
+            },
+            {
+              "category": "test_coverage",
+              "signal": "test_file_count",
+              "value": 112,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/expressjs/express/tree/7ef98448f8b38099ab1ded55e458538ad47a51e7"
+            },
+            {
+              "category": "security",
+              "signal": "has_security_policy",
+              "value": false,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/expressjs/express/tree/7ef98448f8b38099ab1ded55e458538ad47a51e7"
+            },
+            {
+              "category": "dependency_freshness",
+              "signal": "outdated_major",
+              "value": "unknown",
+              "status": "unknown",
+              "reason": "Dependency freshness unmeasured; 1 manifest indicator(s), lockfile absent. No package installation or registry audit performed.",
+              "source": "repo_scan",
+              "weight": 0.1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "8c_eMqUfJgac",
+      "repo": "https://github.com/acme/payments-api",
+      "score": {
+        "deterministic": true,
+        "evidenceCoverage": 0.9,
+        "possibleTotal": 60,
+        "total": 50,
+        "band": "RISKY",
+        "status": "risky",
+        "categories": [
+          {
+            "name": "ci_health",
+            "measurement": "measured",
+            "weight": 0.25,
+            "rawScore": 40,
+            "weightedScore": 10,
+            "evidence": [
+              "github ci_health.ci_status=failing -> 40/100"
+            ],
+            "pass": false
+          },
+          {
+            "name": "test_coverage",
+            "measurement": "measured",
+            "weight": 0.2,
+            "rawScore": 55,
+            "weightedScore": 11,
+            "evidence": [
+              "repo_scan test_coverage.test_file_count=4 -> 55/100"
+            ],
+            "pass": false
+          },
+          {
+            "name": "open_blockers",
+            "measurement": "measured",
+            "weight": 0.2,
+            "rawScore": 65,
+            "weightedScore": 13,
+            "evidence": [
+              "github open_blockers.open_issues=3 -> 55/100",
+              "github open_blockers.open_prs=1 -> 75/100"
+            ],
+            "pass": true
+          },
+          {
+            "name": "documentation",
+            "measurement": "measured",
+            "weight": 0.15,
+            "rawScore": 70,
+            "weightedScore": 10.5,
+            "evidence": [
+              "repo_scan documentation.has_readme=true -> 100/100",
+              "repo_scan documentation.has_changelog=false -> 40/100"
+            ],
+            "pass": true
+          },
+          {
+            "name": "security",
+            "measurement": "measured",
+            "weight": 0.1,
+            "rawScore": 50,
+            "weightedScore": 5,
+            "evidence": [
+              "repo_scan security.has_security_policy=false -> 50/100"
+            ],
+            "pass": false
+          },
+          {
+            "name": "dependency_freshness",
+            "measurement": "unknown",
+            "weight": 0.1,
+            "rawScore": 0,
+            "weightedScore": 0,
+            "evidence": [
+              "Unmeasured outdated_major: Dependency freshness unmeasured; 1 manifest indicator(s), lockfile present. No package installation or registry audit performed."
+            ],
+            "pass": false
+          }
+        ],
+        "mode": "demo",
+        "computedAt": "2026-09-29T23:19:59.065Z"
+      },
+      "assessor": {
+        "decision": "hold",
+        "confidence": null,
+        "source": "deterministic_fallback",
+        "fallbackReason": "demo",
+        "explanation": "Goal: Prepare the next production release\nScore: 50/100 evidence points — deterministic template.\nDecision: HOLD (requires 71/100 and all categories measured).\nUnknown categories: dependency_freshness.\nFailing categories: ci_health, test_coverage, security. Address these before release.",
+        "blockers": [
+          "ci_health scored 40/100 — github ci_health.ci_status=failing -> 40/100",
+          "test_coverage scored 55/100 — repo_scan test_coverage.test_file_count=4 -> 55/100",
+          "security scored 50/100 — repo_scan security.has_security_policy=false -> 50/100"
+        ],
+        "recommendedActions": [
+          "Improve ci_health: address evidence signals",
+          "Improve test_coverage: address evidence signals",
+          "Improve security: address evidence signals"
+        ],
+        "uncertaintyNotes": [
+          "Sample mode uses a deterministic template; no model was called.",
+          "File-presence signals are proxies, not proof of test quality or security. Unmeasured categories remain unknown."
+        ],
+        "mode": "fallback"
+      },
+      "evidence": {
+        "owner": "acme",
+        "repo": "payments-api",
+        "repository": "https://github.com/acme/payments-api",
+        "source": "fixture",
+        "collectedAt": "2026-09-29T23:19:59.051Z",
+        "defaultBranch": "main",
+        "openIssueCount": 3,
+        "openPRCount": 1,
+        "latestCommitSha": "sample-abc1234",
+        "latestCommitDate": null,
+        "hasCI": true,
+        "ciStatus": "failing",
+        "filePaths": [
+          "README.md",
+          "package.json",
+          "package-lock.json",
+          "tests/a.test.ts",
+          "tests/b.test.ts",
+          "tests/c.test.ts",
+          "tests/d.test.ts",
+          ".github/workflows/ci.yml"
+        ],
+        "treeComplete": true,
+        "limitations": [
+          "Synthetic sample only. No GitHub requests or repository code execution. Tests, coverage, vulnerability and freshness checks are unmeasured."
+        ],
+        "observations": [
+          {
+            "category": "ci_health",
+            "signal": "ci_status",
+            "value": "failing",
+            "weight": 0.25,
+            "source": "github"
+          },
+          {
+            "category": "open_blockers",
+            "signal": "open_issues",
+            "value": 3,
+            "weight": 0.2,
+            "source": "github"
+          },
+          {
+            "category": "open_blockers",
+            "signal": "open_prs",
+            "value": 1,
+            "weight": 0.2,
+            "source": "github"
+          },
+          {
+            "category": "documentation",
+            "signal": "has_readme",
+            "value": true,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/acme/payments-api/tree/sample-abc1234"
+          },
+          {
+            "category": "documentation",
+            "signal": "has_changelog",
+            "value": false,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/acme/payments-api/tree/sample-abc1234"
+          },
+          {
+            "category": "test_coverage",
+            "signal": "test_file_count",
+            "value": 4,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/acme/payments-api/tree/sample-abc1234"
+          },
+          {
+            "category": "security",
+            "signal": "has_security_policy",
+            "value": false,
+            "status": "measured",
+            "source": "repo_scan",
+            "weight": 0,
+            "url": "https://github.com/acme/payments-api/tree/sample-abc1234"
+          },
+          {
+            "category": "dependency_freshness",
+            "signal": "outdated_major",
+            "value": "unknown",
+            "status": "unknown",
+            "reason": "Dependency freshness unmeasured; 1 manifest indicator(s), lockfile present. No package installation or registry audit performed.",
+            "source": "repo_scan",
+            "weight": 0.1
+          }
+        ],
+        "scan": {
+          "hasReadme": true,
+          "hasChangelog": false,
+          "hasSecurityPolicy": false,
+          "hasLockFile": true,
+          "hasTests": true,
+          "testFileCount": 4,
+          "dependencyManifests": [
+            "package.json"
+          ],
+          "observations": [
+            {
+              "category": "documentation",
+              "signal": "has_readme",
+              "value": true,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/acme/payments-api/tree/sample-abc1234"
+            },
+            {
+              "category": "documentation",
+              "signal": "has_changelog",
+              "value": false,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/acme/payments-api/tree/sample-abc1234"
+            },
+            {
+              "category": "test_coverage",
+              "signal": "test_file_count",
+              "value": 4,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/acme/payments-api/tree/sample-abc1234"
+            },
+            {
+              "category": "security",
+              "signal": "has_security_policy",
+              "value": false,
+              "status": "measured",
+              "source": "repo_scan",
+              "weight": 0,
+              "url": "https://github.com/acme/payments-api/tree/sample-abc1234"
+            },
+            {
+              "category": "dependency_freshness",
+              "signal": "outdated_major",
+              "value": "unknown",
+              "status": "unknown",
+              "reason": "Dependency freshness unmeasured; 1 manifest indicator(s), lockfile present. No package installation or registry audit performed.",
+              "source": "repo_scan",
+              "weight": 0.1
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

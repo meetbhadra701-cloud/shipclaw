@@ -1,10 +1,10 @@
+import "../shared/env.js";
 /**
  * ShipClaw — Express Server
  * Claude-primary file.
  */
 import express from "express";
 import cors from "cors";
-import { config as loadEnv } from "dotenv";
 import { existsSync, mkdirSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -12,8 +12,7 @@ import { SERVER_PORT } from "../shared/constants.js";
 import { setupRoutes } from "./routes.js";
 import { setDb, SqliteDb } from "../storage/db.js";
 
-loadEnv({ path: ".env.local" });
-loadEnv({ path: ".env" });
+
 
 // ── Ensure required runtime directories exist ────────────────────────────────
 for (const dir of ["runs", "data"]) {

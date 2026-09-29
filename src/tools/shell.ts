@@ -12,7 +12,8 @@ export interface ShellResult {
   command: string;
   stdout: string;
   stderr: string;
-  exitCode: number;
+  status: "rejected" | "simulated" | "unmeasured";
+  exitCode: number | null;
   durationMs: number;
 }
 
@@ -33,6 +34,7 @@ export async function runSafeCommand(command: string): Promise<ShellResult> {
       command,
       stdout: "",
       stderr: `Command not in allowlist: ${command}`,
+      status: "rejected",
       exitCode: 1,
       durationMs: 0,
     };
@@ -43,17 +45,19 @@ export async function runSafeCommand(command: string): Promise<ShellResult> {
       command,
       stdout: `[DEMO] Simulated output for: ${command}`,
       stderr: "",
+      status: "simulated",
       exitCode: 0,
       durationMs: 100,
     };
   }
 
-  // TODO(Codex X-005): implement real safe shell execution with timeout
+  // Deliberately disabled: remote repository scripts are outside this read-only boundary.
   return {
     command,
-    stdout: `[STUB] Not yet implemented`,
+    stdout: "",
     stderr: "",
-    exitCode: 0,
+    status: "unmeasured",
+    exitCode: null,
     durationMs: 0,
   };
 }

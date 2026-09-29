@@ -16,7 +16,7 @@ function getClient(): OpenAI {
   const baseURL =
     process.env["NEMOTRON_BASE_URL"] ?? "https://integrate.api.nvidia.com/v1";
   if (!apiKey) throw new Error("NEMOTRON_API_KEY is not set");
-  _client = new OpenAI({ apiKey, baseURL });
+  _client = new OpenAI({ apiKey, baseURL, timeout: 20_000, maxRetries: 0 });
   return _client;
 }
 

@@ -25,7 +25,7 @@ export function ActionsPanel({ approval, decision, assessor, onResolve, announce
       <section className="card" aria-labelledby="actions-title">
         <header className="card__head">
           <h2 id="actions-title" className="card__title">Proposed actions</h2>
-          <p className="card__sub">No actions were proposed for this run, so nothing needs approval.</p>
+          <p className="card__sub">No actions were proposed for this run, so nothing needs review.</p>
         </header>
       </section>
     );
@@ -53,12 +53,12 @@ export function ActionsPanel({ approval, decision, assessor, onResolve, announce
         <div>
           <h2 id="actions-title" className="card__title">Proposed actions</h2>
           <p className="card__sub">
-            {assessor?.mode === "fallback" ? "Generated from failing categories" : "Proposed by the assessor"} · {approval.riskLevel} risk ·
-            approval <span className="mono">{approval.id}</span>
+            {assessor?.mode === "fallback" ? "Generated from measured weaknesses and unknowns" : "Proposed by the assessor"} · {approval.riskLevel} risk ·
+            review <span className="mono">{approval.id}</span>
           </p>
         </div>
         <span className={`badge ${resolved ? (resolved.status === "approved" ? "badge--ok" : "badge--bad") : "badge--wait"}`}>
-          {resolved ? (resolved.status === "approved" ? "Approved" : "Rejected") : "Awaiting approval"}
+          {resolved ? (resolved.status === "approved" ? "Approved" : "Rejected") : "Awaiting review"}
         </span>
       </header>
 
@@ -75,10 +75,10 @@ export function ActionsPanel({ approval, decision, assessor, onResolve, announce
       {!resolved ? (
         <div className="actions__buttons">
           <button type="button" className="btn btn--primary" onClick={() => act("approve")} disabled={busy !== null} aria-busy={busy === "approve"}>
-            <Icon name="check" size={14} /> Approve
+            <Icon name="check" size={14} /> Record approval
           </button>
           <button type="button" className="btn btn--secondary" onClick={() => act("reject")} disabled={busy !== null} aria-busy={busy === "reject"}>
-            <Icon name="x" size={14} /> Reject
+            <Icon name="x" size={14} /> Record rejection
           </button>
           {error && <p className="form-error" role="alert">Could not record the decision: {error}</p>}
         </div>

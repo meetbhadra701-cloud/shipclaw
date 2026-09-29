@@ -15,11 +15,12 @@ const REVEAL_MS = 170;
 
 export interface Health {
   status: string;
-  nemotron: "configured" | "fallback";
+  nemotron: "configured" | "unavailable";
+  storage?: "sqlite" | "volatile";
   model?: string;
   llmFallbackAllowed?: boolean;
   exa?: "enabled" | "disabled";
-  evidenceSource?: "fixture" | "live";
+  evidenceSource?: "fixture" | "github";
 }
 
 export interface RunSummary {
@@ -51,6 +52,7 @@ export interface RunView {
   error: string | null;
   streamLost: boolean;
   replayed: boolean;
+  fromHistory: boolean;
   report: string | null;
   artifacts: string[];
   memory: MemoryItem[];
@@ -90,6 +92,7 @@ export function useRun() {
   const [streamEnded, setStreamEnded] = useState(false);
   const [streamLost, setStreamLost] = useState(false);
   const [paced, setPaced] = useState(true);
+  const [fromHistory, setFromHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<string | null>(null);
   const [artifacts, setArtifacts] = useState<string[]>([]);
@@ -203,6 +206,7 @@ export function useRun() {
   const resetRunState = (id: string | null) => {
     esRef.current?.close();
     fetchedFor.current = null;
+    setFromHistory(false);
     setRunId(id);
     setReceived([]);
     setVisible(0);
@@ -216,7 +220,7 @@ export function useRun() {
     setMode(null);
   };
 
-  const start = useCallback(async (repoInput: string, goalInput: string) => {
+  const start = useCallback(async (repoInput: string, goalInput: string, demo = false) => {
     resetRunState(null);
     setRepo(repoInput);
     setGoal(goalInput);
@@ -226,11 +230,10 @@ export function useRun() {
       const { runId: id } = await getJson<{ runId: string }>("/api/runs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Evidence collection is fixture-backed in every mode today, so the UI always
-        // requests demo mode and says so, rather than offering a "live" mode that isn't live.
-        body: JSON.stringify({ goal: goalInput, repo: repoInput, demo: true, autoApproveLocal: false }),
+        body: JSON.stringify({ goal: goalInput, repo: repoInput, demo, autoApproveLocal: false }),
       });
       setRunId(id);
+      setMode(demo ? "demo" : "live");
       setPhase("running");
       connect(id);
     } catch (err) {
@@ -241,7 +244,9 @@ export function useRun() {
 
   const open = useCallback((summary: RunSummary) => {
     resetRunState(summary.id);
+    setFromHistory(true);
     setRepo(summary.repo);
+    setMode(summary.mode);
     setGoal(summary.goal);
     setPaced(false);
     setPhase("running");
@@ -289,6 +294,7 @@ export function useRun() {
     error,
     streamLost: streamLost && !derived.final && !streamEnded,
     replayed: !paced,
+    fromHistory,
     report,
     artifacts,
     memory,
