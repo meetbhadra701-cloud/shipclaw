@@ -612,3 +612,6 @@ GREEN — ShipClaw is ready for demo.
 
 ## 2026-09-29 — Final engineering pass
 User authorized implementation forward from the redesign. Add explicit evidence provenance/unknown categories and assessor source; replace fake gate with review recording. Preserve UI hierarchy. GitHub reads only, no remote code execution.
+
+## 2026-09-29 — Live Nemotron follow-up
+User requested Nemotron 3.5 Lightning structured JSON. Configure JSON-object output, thinking disabled, 4096 tokens, non-streaming transport, safe errors; retain Zod validation and deterministic score/decision enforcement. Record the actual model per assessment for truthful historical UI labels. Credentials remain local and ignored.

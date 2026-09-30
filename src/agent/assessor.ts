@@ -73,8 +73,8 @@ export async function assess(ctx: AssessorContext): Promise<AssessorOutput> {
 
     const raw = await nemotron.completeJson<Record<string, unknown>>(messages, {
       temperature: 0.3,
-      topP: 0.7,
-      maxTokens: 2048,
+      topP: 0.95,
+      maxTokens: 4096,
     });
 
     const parsed = AssessorOutputSchema.parse(raw);
@@ -88,7 +88,7 @@ export async function assess(ctx: AssessorContext): Promise<AssessorOutput> {
       );
     }
 
-    return { ...parsed, source: "nemotron", mode: "live" };
+    return { ...parsed, source: "nemotron", model: nemotron.getNemotronModel(), mode: "live" };
   } catch (err) {
     if (!allowFallback) throw err;
     console.warn("[assessor] Nemotron unavailable; using deterministic fallback.");

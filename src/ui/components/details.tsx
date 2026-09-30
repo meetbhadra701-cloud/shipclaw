@@ -399,7 +399,7 @@ export function SystemView({ health, explainSource }: { health: Health | null; e
     { area: "Estimation", what: "Explicit time-to-remediation formula with buffer", status: "real", where: "src/agent/timeToShip.ts" },
     {
       area: "AI",
-      what: `Nemotron (${health?.model ?? "mistralai/mistral-nemotron"}) explains the score; zod-validated; verdict forced to the threshold`,
+      what: `Nemotron (${health?.model ?? "nvidia/nemotron-3.5-lightning-30b-a3b"}) explains the score; zod-validated; verdict forced to the threshold`,
       status: nemotronConfigured ? "real" : "off",
       where: "src/agent/assessor.ts",
     },

@@ -209,6 +209,7 @@ export interface AssessorOutput {
   recommendedActions: string[];
   uncertaintyNotes: string[];
   source?: "nemotron" | "deterministic_fallback";
+  model?: string; // actual configured model for this response, preserved in history
   fallbackReason?: "demo" | "not_configured" | "request_failed";
   mode: RunMode;               // explanation provenance, independent of evidence mode
 }

@@ -8,6 +8,7 @@ import { resolve } from "path";
 import { nanoid } from "nanoid";
 import { runAgentLoop } from "../agent/loop.js";
 import { getDb } from "../storage/db.js";
+import { getNemotronModel } from "../llm/nemotron.js";
 import { EXA_ENABLED } from "../shared/constants.js";
 import { parseGitHubUrl } from "../tools/github.js";
 import { SqliteDb } from "../storage/db.js";
@@ -37,7 +38,7 @@ export function setupRoutes(app: Express): void {
       nemotron: process.env["NEMOTRON_API_KEY"] ? "configured" : "unavailable",
       storage: db instanceof SqliteDb ? "sqlite" : "volatile",
       // Additive, non-secret facts the UI uses to describe a run honestly.
-      model: process.env["NEMOTRON_MODEL"] ?? "mistralai/mistral-nemotron",
+      model: getNemotronModel(),
       // With DEMO_MODE, ALLOW_LLM_FALLBACK=true skips Nemotron entirely (see assessor.ts).
       llmFallbackAllowed: process.env["ALLOW_LLM_FALLBACK"] !== "false",
       exa: EXA_ENABLED && !!process.env["EXA_API_KEY"] ? "enabled" : "disabled",

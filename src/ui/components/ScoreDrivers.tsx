@@ -124,7 +124,7 @@ export function ScoreDrivers({ score, decision, assessor, assessorDone, model }:
         <div className="explain__head">
           <h3 className="kicker">Explanation</h3>
           <span className="explain__source">
-            {source === "nemotron" && <>Written by Nemotron <span className="mono">{model ?? ""}</span> from the score above</>}
+            {source === "nemotron" && <>Live Nemotron response · <span className="mono">{assessor?.model ?? model ?? ""}</span> from the score above</>}
             {source === "template" && <>Deterministic template · {assessor?.fallbackReason === "request_failed" ? "model request failed" : assessor?.fallbackReason === "demo" ? "sample mode; no model call" : "model not configured"}</>}
             {source === "none" && (assessorDone ? <>Unavailable — the explanation step returned no result</> : <>Pending</>)}
           </span>

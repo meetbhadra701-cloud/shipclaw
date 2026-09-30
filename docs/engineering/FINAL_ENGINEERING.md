@@ -53,6 +53,7 @@ Source/config/documentation inventory (plus QA snapshots and result JSON under t
 - `scripts/browser-fault-qa.mjs`
 - `scripts/browser-fixtures.ts`
 - `scripts/browser-qa.mjs`
+- `scripts/live-nemotron-qa.mjs`
 - `src/agent/assessor.test.ts`
 - `src/agent/assessor.ts`
 - `src/agent/loop.ts`
@@ -65,6 +66,7 @@ Source/config/documentation inventory (plus QA snapshots and result JSON under t
 - `src/agent/timeToShip.test.ts`
 - `src/agent/timeToShip.ts`
 - `src/llm/nemotron.ts`
+- `src/llm/nemotron.test.ts`
 - `src/server/index.ts`
 - `src/server/routes.test.ts`
 - `src/server/routes.ts`
@@ -92,7 +94,7 @@ Source/config/documentation inventory (plus QA snapshots and result JSON under t
 
 ## 6. Tests added
 
-41 additional tests (46 → 87): 26 collector/parser/scan tests, 5 API/integration tests, 5 unknown/scoring-policy tests, 4 model-boundary tests, and 1 disabled-live-shell test. Existing fallback-confidence, estimation, and workflow-state tests were updated to the truthful contracts.
+49 additional tests (46 → 95): 26 collector/parser/scan tests, 5 API/integration tests, 5 unknown/scoring-policy tests, 4 model-boundary tests, 1 disabled-live-shell test, and 8 NVIDIA transport tests. Existing fallback-confidence, estimation, and workflow-state tests were updated to the truthful contracts. Transport tests inspect the actual JavaScript SDK request body, configured model selection, truncation/filter/tool finish reasons, refusal, invalid JSON, sanitized HTTP errors and absence of retries.
 
 Coverage includes malformed URLs, SSRF-like destinations, unauthenticated public access, exact separate counts, pinned tree reads, no fixture contamination, stale/pending/skipped CI, workflow reruns, incomplete result sets, truncated trees, empty repos, partial failures, HTTP errors, redacted errors, unknown scoring, incomplete-evidence HOLD, model score injection, conflicting verdict correction, fallback/unavailable assessor, pending review completion, single immutable decisions, missing-run SSE termination, and no shell calls in a remote run.
 
@@ -103,18 +105,26 @@ Environment: Windows Node **26.7.0**, npm **11.19.0**, Vite **5.4.21**, Vitest *
 | Check | Result |
 |---|---|
 | `npm run typecheck` | PASS, exit 0 |
-| `npm test` | PASS, **87/87 tests**, **11/11 files** |
+| `npm test` | PASS, **95/95 tests**, **12/12 files** |
 | `npm run smoke` | PASS, **20/20 checks**, sample HOLD **50/100** |
-| `npm run build` | PASS, Vite **300 modules**, TypeScript exit 0; JS **375.25 kB**, gzip **116.34 kB** |
+| `npm run build` | PASS, Vite **300 modules**, TypeScript exit 0; JS **375.30 kB**, gzip **116.36 kB** |
 | Real browser QA | PASS, **23 assertions** in browser-results.json |
 | Browser fault QA | PASS, **3 scenarios** in browser-fault-results.json: 429, 503, empty/unmeasured with unavailable assessor |
 | Viewports | Desktop **1920×1080**, laptop **1366×768**, mobile **390×844**; no horizontal page overflow |
 | Interaction | Approval/rejection, audit, evidence links, keyboard tab arrows, reduced motion, actual light/dark toggle, invalid URLs and nonexistent repository all passed |
 | Runtime | No JavaScript page exceptions in browser QA |
 | Supplemental visual check | Mobile landing fits; reopening the persisted Express run retains its approved review; final laptop/mobile viewport screenshots inspected |
-| Live Nemotron | **Not run: no configured credentials**. Live-response parsing, immutable score, corrected verdict, fallback and unavailable branches tested with stubs |
+| Live Nemotron | PASS, **one real request**, HTTP **200**, finish reason **stop**, existing Zod validation succeeded, score **63** unchanged, independently recomputed **63**, UI shows the requested live model, **0** page errors |
 
 Browser fault tests use the real routes/loop/collector against injected GitHub responses in a separate test-only server. Public repository tests call GitHub itself. Unit tests also verify SQLite survives close/reopen. This is not a claim of full accessibility certification or exhaustive browser-engine compatibility.
+
+### Live NVIDIA follow-up — 2026-09-30 UTC / 2026-09-29 Pacific
+
+After credentials became available in ignored `.env.local`, the integration was updated to `nvidia/nemotron-3.5-lightning-30b-a3b` at `https://integrate.api.nvidia.com/v1`. One real browser-driven assessment of Express called NVIDIA with temperature **0.3**, top-p **0.95**, max tokens **4096**, `response_format: {type: "json_object"}`, and top-level `chat_template_kwargs: {enable_thinking: false}`. No streaming or automatic retries. The live QA server disabled fallback so a template could not mask a failure.
+
+The response used **887 prompt tokens / 179 completion tokens** and passed the assessor's existing Zod schema. The pre-model score event, final result, stored score, and independent calculation from captured GitHub evidence all matched **63 / HOLD**. The UI labelled the explanation **Live Nemotron response** with the saved model identifier and described its confidence as uncalibrated. Only safe transport metadata was captured; credentials and reasoning traces were neither logged nor included in artifacts.
+
+Evidence: [browser assertions](live-nemotron-results.json), [sanitized wire metadata](live-nemotron-transport.json), [rendered explanation](live-nemotron.png). The earlier desktop/laptop/mobile and failure-matrix QA remains from the initial engineering pass; this follow-up additionally checked the live explanation at 1366×900 with reduced motion. Full unit tests, typecheck, production build and 20-check smoke were rerun after the transport change. Fallback and unavailable branches remain covered by unit tests and the earlier browser fault scenarios.
 
 ## 8. Known limitations
 
@@ -123,7 +133,7 @@ Browser fault tests use the real routes/loop/collector against injected GitHub r
 - Category rules are coarse presence proxies. Raw numeric fields remain backward compatible: unknown uses zero contribution and `measurement: "unknown"`; consumers must honor that discriminator. Possible score is a policy range, not statistical confidence.
 - **Current public inspection returns HOLD even for strong repositories**, because release-blocker triage and dependency freshness are not measured. Nothing falsely advertises SHIP from incomplete evidence.
 - Estimates are illustrative effort for measured weaknesses, not a delivery forecast; unknown effort is excluded. No measured weaknesses means unmeasured effort.
-- A live model's prose can be imperfect. It cannot modify stored score or structured verdict. Live Nemotron was not exercised without credentials.
+- A live model's prose can be imperfect. It cannot modify stored score or structured verdict. One live NVIDIA response was verified; this does not establish model reliability across all repositories or guarantee future provider availability.
 - Trusted local/demo server: no authentication, multi-tenant isolation, restart recovery for interrupted runs, or persistent-volume provisioning was added. Preserve SQLite and runs/ on the deployment volume. Global memory records history but does not infer historical risk signals.
 - Historical saved runs retain their original score policy; do not compare them as if rescored.
 

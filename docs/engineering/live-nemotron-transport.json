@@ -1,0 +1,14 @@
+{
+  "modelRequests": 1,
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "temperature": 0.3,
+  "topP": 0.95,
+  "maxTokens": 4096,
+  "jsonObject": true,
+  "thinkingDisabled": true,
+  "stream": false,
+  "httpStatus": 200,
+  "finishReason": "stop",
+  "promptTokens": 887,
+  "completionTokens": 179
+}

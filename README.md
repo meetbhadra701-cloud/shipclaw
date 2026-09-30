@@ -21,7 +21,7 @@ For development: `npm run dev` (Vite on 5173 and API on 8787).
 Optional `.env.local` configuration (see `.env.example`):
 
 - `GITHUB_TOKEN`: improves GitHub API limits. Only public repositories are supported. Never sent to the browser.
-- `NEMOTRON_API_KEY`: enables the Nemotron explanation. `NEMOTRON_BASE_URL` and `NEMOTRON_MODEL` may override its endpoint/model.
+- `NEMOTRON_API_KEY`: enables the Nemotron explanation. Defaults to `nvidia/nemotron-3.5-lightning-30b-a3b` at `https://integrate.api.nvidia.com/v1`. `NEMOTRON_BASE_URL` and `NEMOTRON_MODEL` may override these.
 - `ALLOW_LLM_FALLBACK=true` (default): use a deterministic template if the model is unavailable. Set `false` to expose an unavailable assessor instead. Neither path changes evidence or score.
 - `ENABLE_EXA=false`: optional external search is off by default and never changes the numeric score.
 - `PORT=8787`.
@@ -80,6 +80,8 @@ The score is finalized before the model call. The assessor parses an explanation
 
 API/UI provenance distinguishes `source: "nemotron"`, `"deterministic_fallback"`, and no valid assessor output. Fallback `confidence` is `null`. Live confidence is model-reported and uncalibrated. Explanatory prose is model output and may still be imperfect; use the deterministic evidence table as the source of truth.
 
+The assessor requests a JSON object with thinking disabled, temperature 0.3, top-p 0.95, and a 4096-token output budget. The JavaScript SDK sends `chat_template_kwargs` at the top level of the request body (Python's `extra_body` wrapper is not a wire field). Only complete content with finish reason `stop` is parsed and validated through Zod. Refusal, truncation, invalid JSON/schema, or a 60-second request timeout uses the configured fallback/unavailable path. No automatic retries, reasoning traces, or raw API error bodies are emitted. Each live assessment saves its model name for accurate historical UI labels.
+
 **Review is recording only.** Analysis finishes while proposals remain pending. Record approval/rejection writes an audit event; no action runs and no repository changes. Conflicting/repeated decisions receive HTTP 409. Existing `/api/approvals/...` names are retained for compatibility. The workflow uses `RECORD_REVIEW` and `COMPLETE_READ_ONLY`, not a pretend wait/execution gate.
 
 ## Storage and API
@@ -110,5 +112,7 @@ npm run build
 ```
 
 Browser QA is optional and uses Playwright supplied by your environment (no new product dependencies). Set `PLAYWRIGHT_MODULE` to its module path if not installed locally; `QA_BROWSER_CHANNEL=msedge` can use installed Edge. `QA_BASE_URL` defaults to 8787. Run `node scripts/browser-qa.mjs` against a built server. Fault QA uses the **test-only** `scripts/browser-fixtures.ts` server on 8791, then `node scripts/browser-fault-qa.mjs`. These injected failures are clearly identified in the saved QA results.
+
+Opt-in live model QA: with `NEMOTRON_API_KEY` configured and a built server running, set `QA_BASE_URL` to that server and run `node --import tsx scripts/live-nemotron-qa.mjs` (its default port is 8793). This starts one real Express assessment and requires a validated live response; fallback cannot pass. It compares the score before/after the model and independently recomputes it from captured evidence, then checks the visible model label. Saved results contain safe metadata and the visible explanation, never credentials or reasoning traces.
 
 See [90-second demo](docs/demo-script.md), [verification results](docs/engineering/FINAL_ENGINEERING.md), and screenshots under `docs/engineering/`.
