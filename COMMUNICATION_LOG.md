@@ -615,3 +615,6 @@ User authorized implementation forward from the redesign. Add explicit evidence 
 
 ## 2026-09-29 — Live Nemotron follow-up
 User requested Nemotron 3.5 Lightning structured JSON. Configure JSON-object output, thinking disabled, 4096 tokens, non-streaming transport, safe errors; retain Zod validation and deterministic score/decision enforcement. Record the actual model per assessment for truthful historical UI labels. Credentials remain local and ignored.
+
+## 2026-09-29 — Render production deployment
+User authorized a deployment-only branch from merged main. Centralize SQLite/artifact paths under optional SHIPCLAW_DATA_DIR, preserving local defaults and report routes. Bind Express to 0.0.0.0 and Render's PORT, pin Node 24, and add a non-secret optional Blueprint. Verify the built frontend, real GitHub/fallback/SSE, and persistence across process restart. No product redesign, Render account changes, deployment, push, or merge in this pass.

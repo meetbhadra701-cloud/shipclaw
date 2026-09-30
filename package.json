@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Bounded autonomous release-readiness agent — ShipClaw hackathon MVP",
   "type": "module",
+  "engines": {
+    "node": ">=24.21.0 <25"
+  },
   "scripts": {
     "start": "node node_modules/tsx/dist/cli.mjs src/server/index.ts",
     "dev": "concurrently \"npm run server\" \"vite --host 0.0.0.0\"",

@@ -12,6 +12,7 @@ import { getNemotronModel } from "../llm/nemotron.js";
 import { EXA_ENABLED } from "../shared/constants.js";
 import { parseGitHubUrl } from "../tools/github.js";
 import { SqliteDb } from "../storage/db.js";
+import { getRunArtifactDir } from "../storage/paths.js";
 import type { AgentEvent } from "../shared/types.js";
 
 /** Artifacts a client may download. Anything else is refused (no path traversal). */
@@ -191,7 +192,7 @@ export function setupRoutes(app: Express): void {
   app.get("/api/reports/:runId", (req: Request, res: Response) => {
     const runId = req.params["runId"] ?? "";
     if (!/^[A-Za-z0-9_-]+$/.test(runId) || !db.getRun(runId)) { res.status(404).json({ error: "Run not found" }); return; }
-    const artifactDir = resolve("runs", runId);
+    const artifactDir = getRunArtifactDir(runId);
     if (!existsSync(artifactDir)) {
       res.status(404).json({ error: "Run artifacts not found" });
       return;
@@ -204,7 +205,7 @@ export function setupRoutes(app: Express): void {
   app.get("/api/reports/:runId/readiness", (req: Request, res: Response) => {
     const runId = req.params["runId"] ?? "";
     if (!/^[A-Za-z0-9_-]+$/.test(runId) || !db.getRun(runId)) { res.status(404).json({ error: "Run not found" }); return; }
-    const mdPath = resolve("runs", runId, "SHIPCLAW_READINESS.md");
+    const mdPath = resolve(getRunArtifactDir(runId), "SHIPCLAW_READINESS.md");
     if (!existsSync(mdPath)) {
       res.status(404).json({ error: "Report not generated yet" });
       return;
@@ -228,7 +229,7 @@ export function setupRoutes(app: Express): void {
       res.status(400).json({ error: "Unknown artifact" });
       return;
     }
-    const path = resolve("runs", runId, name);
+    const path = resolve(getRunArtifactDir(runId), name);
     if (!existsSync(path)) {
       res.status(404).json({ error: "Artifact not found" });
       return;

@@ -18,6 +18,8 @@ Open http://localhost:8787. Paste a public URL such as `https://github.com/expre
 
 For development: `npm run dev` (Vite on 5173 and API on 8787).
 
+For a hosted deployment, use the [Render Node/Express setup](docs/deployment/RENDER.md). This app needs one continuing Node process for Express, SSE, SQLite, and artifacts. The optional `render.yaml` describes a paid web service with one persistent disk; it does not deploy anything by itself. Production defaults to Node 24.21.0 (pinned in `.node-version`, bounded to Node 24 in `engines`).
+
 Optional `.env.local` configuration (see `.env.example`):
 
 - `GITHUB_TOKEN`: improves GitHub API limits. Only public repositories are supported. Never sent to the browser.
@@ -86,7 +88,7 @@ The assessor requests a JSON object with thinking disabled, temperature 0.3, top
 
 ## Storage and API
 
-SQLite: `data/shipclaw.sqlite`. Artifacts: `runs/<id>/`. Preserve both on a persistent volume to retain history. If SQLite cannot open, the server reports volatile storage in health/UI. Memory is global run context; it does not change the score or derive historical risk signals. Report files are completion snapshots; later review decisions are in the audit log and `audit.jsonl`.
+Without `SHIPCLAW_DATA_DIR`, SQLite remains at `data/shipclaw.sqlite` and artifacts at `runs/<id>/`. With it set, SQLite is `<SHIPCLAW_DATA_DIR>/shipclaw.sqlite` and artifacts are `<SHIPCLAW_DATA_DIR>/runs/<id>/`. Mount one persistent disk at that root to retain both. Production startup fails if SQLite cannot initialize or `dist/ui/index.html` is missing; development retains its volatile-storage fallback. Memory is global run context; it does not change the score or derive historical risk signals. Report files are completion snapshots; later review decisions are in the audit log and `audit.jsonl`.
 
 | Endpoint | Purpose |
 |---|---|
