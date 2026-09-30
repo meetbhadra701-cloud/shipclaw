@@ -77,7 +77,9 @@ export async function assess(ctx: AssessorContext): Promise<AssessorOutput> {
       maxTokens: 4096,
     });
 
-    const parsed = AssessorOutputSchema.parse(raw);
+    const result = AssessorOutputSchema.safeParse(raw);
+    if (!result.success) throw new nemotron.NemotronError("Nemotron response failed schema validation.", "schema_validation");
+    const parsed = result.data;
 
     // Enforce: decision must match score threshold (Nemotron cannot override)
     const expectedDecision: "ship" | "hold" = decisionForScore(ctx.score);
@@ -90,6 +92,7 @@ export async function assess(ctx: AssessorContext): Promise<AssessorOutput> {
 
     return { ...parsed, source: "nemotron", model: nemotron.getNemotronModel(), mode: "live" };
   } catch (err) {
+    console.warn(nemotron.describeNemotronFailure(err));
     if (!allowFallback) throw err;
     console.warn("[assessor] Nemotron unavailable; using deterministic fallback.");
     return fallbackAssess(ctx.score, ctx.goal, process.env["NEMOTRON_API_KEY"] ? "request_failed" : "not_configured");
