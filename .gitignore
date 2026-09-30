@@ -8,6 +8,8 @@ data/*.sqlite
 data/*.sqlite-shm
 data/*.sqlite-wal
 runs/
+# Optional local equivalent of the Render disk mount
+/storage/
 
 # Build output
 node_modules/

@@ -18,6 +18,7 @@ import type {
 import { mkdirSync, readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { createRequire } from "module";
+import { getStoragePaths } from "./paths.js";
 
 // ─── Interface ────────────────────────────────────────────────────────────────
 
@@ -220,7 +221,7 @@ export class SqliteDb implements IDb {
   private runCache = new Map<string, Run>();
   private snapshotCache = new Map<string, MemorySnapshot>();
 
-  constructor(dbPath = resolve("data", "shipclaw.sqlite")) {
+  constructor(dbPath = getStoragePaths().databasePath) {
     mkdirSync(dirname(dbPath), { recursive: true });
     const require = createRequire(import.meta.url);
     const sqlite = require("node:sqlite") as { DatabaseSync: new (path: string) => SqliteDatabase };

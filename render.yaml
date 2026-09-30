@@ -1,0 +1,38 @@
+# Optional Blueprint. Creating this service/disk is a manual, paid action.
+services:
+  - type: web
+    name: shipclaw
+    runtime: node
+    branch: main
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: shipclaw-storage
+      mountPath: /opt/render/project/src/storage
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Vite/TypeScript are build-time dev dependencies; npm ci must include them.
+      - key: NPM_CONFIG_INCLUDE
+        value: dev
+      - key: SHIPCLAW_DATA_DIR
+        value: /opt/render/project/src/storage
+      - key: DEMO_MODE
+        value: "false"
+      - key: ALLOW_LLM_FALLBACK
+        value: "true"
+      - key: NEMOTRON_BASE_URL
+        value: https://integrate.api.nvidia.com/v1
+      - key: NEMOTRON_MODEL
+        value: nvidia/nemotron-3.5-lightning-30b-a3b
+      - key: NEMOTRON_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: ENABLE_EXA
+        value: "false"
+      - key: EXA_ENABLED
+        value: "false"

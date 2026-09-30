@@ -23,6 +23,7 @@ import type {
   AgentState,
 } from "../shared/types.js";
 import { getDb, type IDb } from "../storage/db.js";
+import { getRunArtifactDir } from "../storage/paths.js";
 import { MemoryManager, MEMORY_KEYS } from "./memory.js";
 import { calculateReadinessScore, decisionForScore } from "./scorer.js";
 import { buildRiskFingerprint } from "./riskFingerprint.js";
@@ -68,7 +69,7 @@ export async function runAgentLoop(config: LoopConfig): Promise<LoopResult> {
   const runId = config.runId ?? nanoid(12);
   const isDemoMode = config.demo ?? process.env["DEMO_MODE"] === "true";
   const mode = isDemoMode ? "demo" : "live";
-  const artifactDir = resolve("runs", runId);
+  const artifactDir = getRunArtifactDir(runId);
 
   mkdirSync(artifactDir, { recursive: true });
 

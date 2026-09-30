@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InMemoryDb, setDb } from "../storage/db.js";
 import { setupRoutes } from "./routes.js";
 import type { AgentEvent, Run } from "../shared/types.js";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 let server: Server;
 let base: string;
@@ -35,6 +38,21 @@ async function start(demo = false, repo = "https://github.com/owner/repo"): Prom
   throw new Error("Run did not terminate");
 }
 describe("run API and review semantics", () => {
+  it("writes and serves every report endpoint from the configured storage root", async () => {
+    const root = mkdtempSync(join(tmpdir(), "shipclaw-reports-"));
+    vi.stubEnv("SHIPCLAW_DATA_DIR", root);
+    try {
+      const run = await start(true);
+      expect(run.artifactDir).toBe(join(root, "runs", run.id));
+      expect(existsSync(join(run.artifactDir!, "evidence.json"))).toBe(true);
+      const listing = await (await nativeFetch(`${base}/api/reports/${run.id}`)).json() as { artifactDir: string; artifacts: string[] };
+      expect(listing.artifactDir).toBe(run.artifactDir);
+      expect(listing.artifacts).toContain("evidence.json");
+      expect((await nativeFetch(`${base}/api/reports/${run.id}/readiness`)).status).toBe(200);
+      expect((await nativeFetch(`${base}/api/reports/${run.id}/files/evidence.json`)).status).toBe(200);
+      expect((await nativeFetch(`${base}/api/reports/${run.id}/files/shipclaw.sqlite`)).status).toBe(400);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
   it("rejects invalid URLs and malformed types before creating a run", async () => {
     for (const repo of ["not a URL", "https://example.com/owner/repo", 123]) {
       expect((await post("/api/runs", { repo, goal: "check" })).status).toBe(400);
