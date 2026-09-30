@@ -44,6 +44,7 @@ const ctx: AssessorContext = {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   if (originalDemoMode === undefined) delete process.env["DEMO_MODE"];
   else process.env["DEMO_MODE"] = originalDemoMode;
 
@@ -92,6 +93,23 @@ describe("model boundary", () => {
     const result = await assess(input);
     expect(result).toMatchObject({ mode: "fallback", source: "deterministic_fallback", confidence: null });
     expect(input.score.mode).toBe("live");
+  });
+  it.each([
+    ["timeout", () => vi.spyOn(nemotron, "completeJson").mockRejectedValue(new nemotron.NemotronError("Nemotron request failed.", "timeout", 60012)), /category=timeout elapsedMs=60012 model=/],
+    ["schema_validation", () => vi.spyOn(nemotron, "completeJson").mockResolvedValue({ decision: "ship", confidence: 2, explanation: "PRIVATE-MODEL-TEXT" }), /category=schema_validation model=/],
+  ])("logs sanitized %s diagnostics and keeps the honest fallback", async (_category, arrange, expected) => {
+    process.env["ALLOW_LLM_FALLBACK"] = "true";
+    vi.stubEnv("NEMOTRON_API_KEY", "test-only-secret");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const input = structuredClone(ctx); input.score.mode = "live";
+    const before = JSON.stringify(input.score);
+    arrange();
+    const result = await assess(input);
+    expect(result).toMatchObject({ source: "deterministic_fallback", fallbackReason: "request_failed", confidence: null, decision: "hold" });
+    expect(JSON.stringify(input.score)).toBe(before);
+    const logged = warn.mock.calls.map(args => args.join(" ")).join("\n");
+    expect(logged).toMatch(expected);
+    expect(logged).not.toContain("PRIVATE-MODEL-TEXT");
   });
   it("leaves the assessor unavailable when fallback is disabled", async () => {
     process.env["ALLOW_LLM_FALLBACK"] = "false";
