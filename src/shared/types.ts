@@ -29,7 +29,8 @@ export type ReleaseDecision = "ship" | "hold" | "unknown";
 export interface ScoreCategory {
   name: string;
   weight: number;       // 0–1, all weights must sum to 1
-  rawScore: number;     // 0–100
+  measurement?: "measured" | "unknown"; // absent on legacy runs
+  rawScore: number;     // 0–100; unknown uses legacy numeric 0, not a measured failure
   weightedScore: number;
   evidence: string[];   // human-readable reasons
   pass: boolean;
@@ -41,6 +42,8 @@ export interface ScoreCategory {
  */
 export interface ReadinessScore {
   readonly deterministic: true;
+  evidenceCoverage?: number; // weighted measured fraction; NOT test coverage
+  possibleTotal?: number; // upper bound if unknown categories earned all points
   total: number;          // 0–100 numeric, computed from weighted categories
   band: ScoreBand;
   status: ScoreStatus;
@@ -72,6 +75,7 @@ export interface RiskFingerprint {
 // ─── Time-to-Ship ─────────────────────────────────────────────────────────────
 
 export interface TimeToShipEstimate {
+  status?: "illustrative" | "unmeasured";
   minMinutes: number;
   maxMinutes: number;
   reasons: string[];       // visible heuristic reasons shown in UI + report
@@ -115,6 +119,9 @@ export interface Observation {
   value: string | number | boolean;
   weight: number;
   source: "github" | "repo_scan" | "shell" | "memory" | "manual";
+  status?: "measured" | "unknown";
+  reason?: string;
+  url?: string;
 }
 
 // ─── Public Plan ──────────────────────────────────────────────────────────────
@@ -146,7 +153,32 @@ export interface MemorySnapshot {
 
 type EventBase = { runId: string; ts: string };
 
+/** The 17 states of the bounded agent loop (src/agent/loop.ts), in execution order. */
+export const AGENT_STATES = [
+  "INIT",
+  "LOAD_MEMORY",
+  "PLAN",
+  "FETCH_GITHUB_DATA",
+  "SCAN_REPO",
+  "RUN_SAFE_CHECKS",
+  "CALCULATE_SCORE",
+  "BUILD_RISK_FINGERPRINT",
+  "ESTIMATE_TIME_TO_SHIP",
+  "OPTIONAL_EXA_EXTERNAL_EVIDENCE",
+  "ASSESS_WITH_NEMOTRON",
+  "PROPOSE_ACTIONS",
+  "RECORD_REVIEW",
+  "COMPLETE_READ_ONLY",
+  "UPDATE_MEMORY",
+  "WRITE_ARTIFACTS",
+  "FINALIZE",
+] as const;
+
+export type AgentState = (typeof AGENT_STATES)[number];
+
 export type AgentEvent =
+  | (EventBase & { type: "state_entered"; state: AgentState })
+  | (EventBase & { type: "repository_evidence"; evidence: RepositoryEvidence })
   | (EventBase & { type: "goal_received"; goal: string })
   | (EventBase & { type: "memory_loaded"; itemCount: number; basedOnMemory: boolean })
   | (EventBase & { type: "plan_created"; plan: PublicPlan })
@@ -166,17 +198,20 @@ export type AgentEvent =
 /**
  * AssessorOutput — Nemotron's explanation of the deterministic score.
  * It NEVER contains a new numeric score field. decision is always
- * derived from whether total >= threshold; Nemotron only names "ship"/"hold"
+ * derived from the threshold and evidence completeness; Nemotron only names "ship"/"hold"
  * after reading the pre-computed score.
  */
 export interface AssessorOutput {
   decision: ReleaseDecision;
-  confidence: number;          // 0–1
+  confidence: number | null;          // model-reported 0–1; null for deterministic fallback
   explanation: string;
   blockers: string[];
   recommendedActions: string[];
   uncertaintyNotes: string[];
-  mode: RunMode;               // "fallback" means LLM was not used
+  source?: "nemotron" | "deterministic_fallback";
+  model?: string; // actual configured model for this response, preserved in history
+  fallbackReason?: "demo" | "not_configured" | "request_failed";
+  mode: RunMode;               // explanation provenance, independent of evidence mode
 }
 
 // ─── Run ──────────────────────────────────────────────────────────────────────
@@ -204,4 +239,23 @@ export interface Run {
   finalDecision?: ReleaseDecision;
   artifactDir?: string;      // path to runs/<runId>/
   errorMessage?: string;
+}
+
+/** Captured once per run; persisted to evidence.json and the event log. */
+export interface RepositoryEvidence {
+  source: "github" | "fixture";
+  collectedAt: string;
+  repository: string;
+  defaultBranch: string;
+  latestCommitSha: string | null;
+  latestCommitDate: string | null;
+  openIssueCount: number | null;
+  openPRCount: number | null;
+  hasCI: boolean | null;
+  ciStatus: "passing" | "failing" | "unknown";
+  actionsRuns?: Array<{ name: string; status: string; conclusion: string | null; url: string; headSha: string }>;
+  filePaths: string[];
+  treeComplete: boolean;
+  observations: Observation[];
+  limitations: string[];
 }

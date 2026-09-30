@@ -3,7 +3,7 @@
  * Claude-authored placeholder. Codex (X-006) should expand with full coverage.
  */
 import { describe, it, expect } from "vitest";
-import { calculateReadinessScore } from "./scorer.js";
+import { calculateReadinessScore, decisionForScore } from "./scorer.js";
 import type { Observation } from "../shared/types.js";
 
 const baseObs: Observation[] = [
@@ -76,4 +76,43 @@ describe("calculateReadinessScore", () => {
     expect(result.categories.find((category) => category.name === "test_coverage")?.rawScore).toBe(55);
     expect(result.categories.find((category) => category.name === "open_blockers")?.rawScore).toBe(55);
   });
+});
+
+describe("unknown evidence policy", () => {
+  it("awards no invented default points and exposes the full unknown range", () => {
+    const score = calculateReadinessScore({ observations: [], runId: "empty", mode: "live" });
+    expect(score).toMatchObject({ total: 0, evidenceCoverage: 0, possibleTotal: 100 });
+    expect(score.categories.every(c => c.measurement === "unknown")).toBe(true);
+  });
+  it("distinguishes measured failure from unmeasured status", () => {
+    const score = calculateReadinessScore({ observations: [
+      { category: "ci_health", signal: "ci_status", value: "unknown", source: "github", weight: .25 },
+      { category: "documentation", signal: "has_readme", value: false, source: "repo_scan", weight: .15 },
+    ], runId: "unknown", mode: "live" });
+    expect(score.categories.find(c => c.name === "ci_health")?.measurement).toBe("unknown");
+    expect(score.categories.find(c => c.name === "documentation")).toMatchObject({ measurement: "measured", rawScore: 0, pass: false });
+    expect(score.evidenceCoverage).toBe(.15);
+  });
+  it("does not score unsupported or malformed signals as evidence", () => {
+    const observations: Observation[] = [
+      { category: "ci_health", signal: "invented_signal", value: true, source: "manual", weight: .25 },
+      { category: "test_coverage", signal: "test_file_count", value: "garbage", source: "manual", weight: .2 },
+    ];
+    expect(calculateReadinessScore({ observations, runId: "bad", mode: "live" }).evidenceCoverage).toBe(0);
+  });
+});
+
+
+it("withholds a partially observed category instead of claiming complete measurement", () => {
+  const score = calculateReadinessScore({ runId: "partial", mode: "live", observations: [
+    { category: "documentation", signal: "has_readme", value: true, source: "repo_scan", weight: .15 },
+    { category: "documentation", signal: "has_changelog", value: "unknown", status: "unknown", source: "repo_scan", weight: .15 },
+  ] });
+  expect(score.categories.find(c => c.name === "documentation")).toMatchObject({ measurement: "unknown", weightedScore: 0 });
+  expect(score.evidenceCoverage).toBe(0);
+});
+it("requires complete evidence as well as the numeric release threshold", () => {
+  const score = calculateReadinessScore({ observations: baseObs, runId: "complete", mode: "live" });
+  expect(decisionForScore(score)).toBe("ship");
+  expect(decisionForScore({ ...score, evidenceCoverage: .8 })).toBe("hold");
 });

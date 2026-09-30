@@ -27,19 +27,24 @@ export function calculateReadinessScore(input: ScorerInput): ReadinessScore {
   const categories = (Object.keys(SCORE_WEIGHTS) as ScoreCategoryName[]).map(
     (name) => {
       const relevant = input.observations.filter((o) => o.category === name);
-      const scored = relevant.map(scoreObservation);
-      const rawScore = scored.length > 0
+      const measured = relevant.filter(isMeasured);
+      const scored = measured.map(scoreObservation);
+      const categoryMeasured = scored.length > 0 && measured.length === relevant.length;
+      const rawScore = categoryMeasured
         ? Math.round(scored.reduce((sum, item) => sum + item.score, 0) / scored.length)
-        : 50;
+        : 0;
       const weight = SCORE_WEIGHTS[name];
       return {
         name,
+        measurement: categoryMeasured ? "measured" as const : "unknown" as const,
         weight,
         rawScore,
         weightedScore: rawScore * weight,
-        evidence: scored.length > 0
-          ? scored.map((item) => item.evidence)
-          : [`No ${name} observations found; using conservative default score 50.`],
+        evidence: [
+          ...scored.map((item) => item.evidence),
+          ...relevant.filter(o => !isMeasured(o)).map(o => `Unmeasured ${o.signal}: ${o.reason ?? "No usable measurement."}`),
+          ...(relevant.length ? [] : [`No ${name} observations collected; unknown, no points awarded.`]),
+        ],
         pass: rawScore >= 60,
       };
     }
@@ -51,6 +56,8 @@ export function calculateReadinessScore(input: ScorerInput): ReadinessScore {
 
   return {
     deterministic: true,
+    evidenceCoverage: Math.round(categories.filter(c => c.measurement === "measured").reduce((sum, c) => sum + c.weight, 0) * 100) / 100,
+    possibleTotal: Math.round(categories.reduce((sum, c) => sum + (c.measurement === "unknown" ? 100 * c.weight : c.weightedScore), 0)),
     total,
     band: getScoreBand(total),
     status: getScoreStatus(total),
@@ -168,4 +175,19 @@ function testFileCountScore(value: number): number {
 
 function clamp(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+/** Unknowns never enter the category average, even for legacy observations. */
+function isMeasured(o: Observation): boolean {
+  if (o.status === "unknown" || ["unknown", "unmeasured", "pending", "skipped", ""].includes(String(o.value).toLowerCase())) return false;
+  const booleans = ["ci_passing", "has_readme", "no_alerts", "up_to_date", "changelog_exists", "has_changelog", "env_secrets_exposed", "has_security_policy"];
+  if (booleans.includes(o.signal)) return typeof o.value === "boolean" || ["true", "false"].includes(String(o.value).toLowerCase());
+  const statuses = ["ci_status", "npm run typecheck", "npm test", "last_workflow_run"];
+  if (statuses.includes(o.signal)) return ["passing", "success", "true", "failing", "failure", "false"].includes(String(o.value).toLowerCase());
+  const counts = ["test_files_found", "test_file_count", "test_files", "coverage_percent", "open_critical_issues", "open_prs_without_review", "open_prs", "open_issues", "dependabot_alerts", "outdated_major"];
+  return counts.includes(o.signal) && typeof o.value === "number" && Number.isFinite(o.value) && o.value >= 0;
+}
+
+export function decisionForScore(score: ReadinessScore): "ship" | "hold" {
+  return score.total >= 71 && (score.evidenceCoverage ?? 1) === 1 ? "ship" : "hold";
 }

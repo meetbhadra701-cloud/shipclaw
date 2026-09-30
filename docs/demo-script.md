@@ -1,123 +1,15 @@
-# ShipClaw — 3-Minute Demo Script
+# ShipClaw — 90-second engineering demo
 
-## Beat sheet
+Build and start locally with no credentials required. Pre-run `octocat/Hello-World` and `expressjs/express` once if network latency or rate limits could disrupt the presentation. Reopen captured runs from history and call them saved snapshots if using that backup. Never describe sample mode as live evidence.
 
-### 0:00 – 0:20 | Hook
+| Time | Action and narration |
+|---|---|
+| 0–10s | Paste `https://github.com/octocat/Hello-World`. “This is a read-only GitHub assessment. It will not install or execute this repository.” |
+| 10–25s | Show HOLD, evidence points, and incomplete status. Open Evidence: one regular file, no test-file indicators, the actual commit SHA. “Unknowns are not pass or fail.” |
+| 25–40s | New analysis → `https://github.com/expressjs/express`. Point out its different commit, 214 files / 112 test indicators in the verified snapshot, changelog, manifests, Actions links, and different score. Values may change with the repo. |
+| 40–55s | Show Why: verified snapshots earned 41 versus 63 points. “These are file and Actions signals, not a security audit or test coverage. Both HOLD because blocker triage and dependency freshness are unmeasured.” |
+| 55–65s | Show explanation source. With the configured key: “This is a validated live Nemotron response. The score was 63 before and after the model; its confidence is self-reported, not calibrated.” If fallback is visible instead: “This is a deterministic template with no model confidence.” In either case, code discards model score fields and enforces the verdict. |
+| 65–80s | Record approval on a proposed action; open Audit trail. “This records review. It does not execute anything or pretend to block writes.” |
+| 80–90s | Open Report or download `evidence.json`; point to history. “The raw snapshot, limitations, scoring rules, explanation source, and review are inspectable. Effort is illustrative, not a promised ship date.” |
 
-> "You're about to ship. But is your repo actually ready? ShipClaw tells you in under 3 minutes."
-
-- Open the terminal
-- Show the dashboard URL (http://localhost:5173)
-
----
-
-### 0:20 – 0:45 | Start a demo run
-
-```bash
-DEMO_MODE=true ALLOW_LLM_FALLBACK=true \
-  npm run agent:run -- \
-  --repo https://github.com/owner/repo \
-  --goal "Check release readiness for v1.0" \
-  --demo \
-  --auto-approve-local
-```
-
-- Point out the 17 state machine events streaming in real time
-- Highlight: **"The score is computed here — before any LLM is called."**
-
----
-
-### 0:45 – 1:15 | Dashboard walkthrough
-
-Open http://localhost:5173 (or show a pre-seeded run)
-
-1. **Goal panel** — explain repo + goal inputs
-2. **Agent Activity** — live event stream (role="log")
-3. **Readiness Score** — score bar, band badge, category breakdown table
-4. **Risk Fingerprint** — per-signal severity with memory provenance
-5. **Time-to-Ship** — "65–98 minutes to fix these blockers"
-
-Key talking point:
-> "Everything you see — score, fingerprint, time estimate — is deterministic. Nemotron explains it. It doesn't invent it."
-
----
-
-### 1:15 – 1:45 | Report preview
-
-Scroll to the **Live Report Preview** panel.
-
-- Show the rendered markdown: verdict, score breakdown table, blockers, fix order, audit trail
-- Show the artifacts on disk:
-
-```bash
-cat runs/<runId>/SHIPCLAW_READINESS.md
-cat runs/<runId>/github_issue_draft.md
-cat runs/<runId>/memory_diff.md
-```
-
-Key talking point:
-> "One click from this GitHub issue draft into your tracker. Memory means the second run knows what the first run saw."
-
----
-
-### 1:45 – 2:10 | Approval gate
-
-Show the Approval panel:
-- "Before ShipClaw does anything destructive, it asks."
-- Click **Approve** — show the action executing
-- Or click **Reject** — show it stopping cleanly
-
----
-
-### 2:10 – 2:35 | Live mode teaser
-
-```bash
-# Switch off demo mode (requires real keys in .env.local)
-npm run agent:run -- \
-  --repo https://github.com/your-real-repo \
-  --goal "Is this ready to ship v2?"
-```
-
-- Watch real GitHub data flow in
-- Score changes based on actual CI, issues, PRs
-- Nemotron narrates: "Your CI is red. 3 unreviewed PRs. 2 Dependabot alerts..."
-
----
-
-### 2:30 – 2:50 | Live rendered report
-
-Open the **Live Report Preview** panel (already visible in dashboard).
-
-- Point to the markdown table rendering in-browser from `SHIPCLAW_READINESS.md`
-- "This is the same file that lands in your `runs/` directory — it's not a screenshot."
-
-```bash
-cat runs/ssXN5vTGx8cB/memory_diff.md   # show memory delta
-cat runs/ssXN5vTGx8cB/audit.jsonl | head -5  # show audit trail
-```
-
----
-
-### 2:50 – 3:00 | Close
-
-> "ShipClaw: deterministic score, human approval, memory across runs, polished report. Under 3 minutes from repo URL to ship/hold decision."
-
-- Show the final verdict badge: ✅ SHIP or 🔴 HOLD
-- Leave the dashboard open showing the full report render
-
----
-
-## Backup slides (if live demo fails)
-
-1. Screenshot: Dashboard with score 84/100 READY → SHIP decision
-2. Screenshot: SHIPCLAW_READINESS.md rendered in GitHub
-3. Screenshot: memory_diff.md showing score improved run-over-run
-4. Terminal recording: smoke test passing 20/20 checks
-
-## Reset between demos
-
-```bash
-# Clear runs and reset memory (in-memory DB resets on restart)
-rm -rf runs/*
-npm run server  # fresh InMemoryDb
-```
+If GitHub is rate-limited, show the visible error or captured history. The explicit sample button is the offline alternative and clearly labels synthetic evidence.

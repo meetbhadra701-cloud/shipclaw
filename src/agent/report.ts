@@ -20,6 +20,7 @@ import type {
   AssessorOutput,
   ExternalEvidence,
 } from "../shared/types.js";
+import { decisionForScore } from "./scorer.js";
 import { FALLBACK_BANNER, DEMO_BANNER, EXA_ENABLED } from "../shared/constants.js";
 
 // ─── Report Input ─────────────────────────────────────────────────────────────
@@ -52,8 +53,8 @@ export async function generateReport(input: ReportInput): Promise<void> {
 function buildReadinessMd(input: ReportInput): string {
   const { run, score, riskFingerprint, timeToShip, assessorOutput, evidence, auditLog, mode } = input;
   const { id: runId, goal, repo, startedAt, finishedAt } = run;
-  const decision = assessorOutput?.decision ?? (score.total >= 71 ? "ship" : "hold");
-  const confidence = assessorOutput?.confidence ?? 0;
+  const decision = decisionForScore(score);
+  const confidence = assessorOutput?.mode === "live" && assessorOutput.confidence !== null ? `${Math.round(assessorOutput.confidence * 100)}% (model-reported, not calibrated)` : "Not measured";
   const isShip = decision === "ship";
 
   const modeNote =
@@ -83,7 +84,7 @@ function buildReadinessMd(input: ReportInput): string {
   const verdict = [
     `## Verdict: ${decision.toUpperCase()}`,
     ``,
-    assessorOutput?.explanation ?? `Score of ${score.total}/100 — threshold is 71 for READY.`,
+    assessorOutput?.explanation ?? `Earned evidence points: ${score.total}/100. SHIP requires 71 points and all categories measured; unknowns are not failures.`,
     ``,
   ].join("\n");
 
@@ -97,6 +98,9 @@ function buildReadinessMd(input: ReportInput): string {
     `| **Band** | ${score.band} |`,
     `| **Status** | ${score.status.toUpperCase()} |`,
     `| **Deterministic** | ✅ Yes (computed before LLM) |`,
+    `| **Measured category weight** | ${Math.round((score.evidenceCoverage ?? 1) * 100)}% |`,
+    `| **Possible score including unknowns** | ${score.total}–${score.possibleTotal ?? score.total} |`,
+    `Unknown categories earn no points, not a failing measurement. SHIP requires 71+ AND all categories measured. File presence is a proxy, never proof of coverage or security. Raw observations and limitations: evidence.json.`,
     ``,
   ].join("\n");
 
@@ -118,18 +122,19 @@ function buildReadinessMd(input: ReportInput): string {
     ``,
     `| Confidence | Source |`,
     `|---|---|`,
-    `| **${(confidence * 100).toFixed(0)}%** | ${mode === "fallback" ? "Deterministic fallback" : "Nemotron assessor"} |`,
+    `| ${confidence} | ${assessorOutput?.source ?? (assessorOutput?.mode === "fallback" ? "deterministic_fallback" : "unavailable")} |`,
     ``,
   ].join("\n");
 
-  // Section 6: Time-to-Demo-Ready
+  // Section 6: Illustrative remediation effort
   const ttsSection = [
-    `## Time-to-Demo-Ready`,
+    `## Illustrative remediation effort`,
+    `Not a ship date. Unknown work is excluded. ${timeToShip.minMinutes === 0 ? "No measured weaknesses to estimate; effort unmeasured." : ""}`,
     ``,
     `| Metric | Value |`,
     `|---|---|`,
-    `| **Min** | ${timeToShip.minMinutes} minutes |`,
-    `| **Max** | ${timeToShip.maxMinutes} minutes |`,
+    `| **Min** | ${timeToShip.status === "unmeasured" ? "Unmeasured" : timeToShip.minMinutes + " minutes"} |`,
+    `| **Max** | ${timeToShip.status === "unmeasured" ? "Unmeasured" : timeToShip.maxMinutes + " minutes"} |`,
     `| **Heuristic** | ${timeToShip.heuristic} |`,
     ``,
     `**Reasons:**`,
@@ -145,20 +150,20 @@ function buildReadinessMd(input: ReportInput): string {
     `|---|---|---|---|---|---|`,
     ...score.categories.map(
       (c) =>
-        `| ${c.name} | ${(c.weight * 100).toFixed(0)}% | ${c.rawScore}/100 | ${c.weightedScore.toFixed(1)} | ${c.pass ? "✅" : "❌"} | ${c.evidence.slice(0, 2).join("; ") || "—"} |`
+        `| ${c.name} | ${(c.weight * 100).toFixed(0)}% | ${c.measurement === "unknown" ? "Unmeasured" : c.rawScore + "/100"} | ${c.weightedScore.toFixed(1)} | ${c.measurement === "unknown" ? "Unknown" : c.pass ? "✅" : "❌"} | ${c.evidence.slice(0, 2).join("; ") || "—"} |`
     ),
     `| **TOTAL** | 100% | — | **${score.total}** | ${isShip ? "✅" : "❌"} | — |`,
     ``,
   ].join("\n");
 
   // Section 8: Top Blockers
-  const blockers = assessorOutput?.blockers ?? score.categories.filter((c) => !c.pass).map((c) => c.name);
+  const blockers = assessorOutput?.blockers ?? score.categories.filter((c) => c.measurement !== "unknown" && !c.pass).map((c) => c.name);
   const blockersSection = [
     `## Top Blockers`,
     ``,
     blockers.length > 0
       ? blockers.map((b) => `- ${b}`).join("\n")
-      : "_No blockers detected._",
+      : "_No measured weaknesses identified; unknown evidence is not a pass._",
     ``,
   ].join("\n");
 
@@ -166,7 +171,7 @@ function buildReadinessMd(input: ReportInput): string {
   const fingerprintSection = [
     `## Release Risk Fingerprint`,
     ``,
-    `> Based on: ${riskFingerprint.basedOnMemory ? `${riskFingerprint.memoryGenerationCount} prior run(s)` : "first run — no prior memory"}`,
+    `> Current measured categories only. ${riskFingerprint.memoryGenerationCount} prior run(s) recorded; memory does not alter risk signals.`,
     ``,
     `| Severity | Signal | Detail | From Memory? |`,
     `|---|---|---|---|`,
@@ -181,12 +186,12 @@ function buildReadinessMd(input: ReportInput): string {
 
   // Section 10: Time-to-Ship Table
   const ttsTableSection = [
-    `## Time-to-Ship Estimate`,
+    `## Effort heuristic (not a ship date)`,
     ``,
     `| Range | Minutes |`,
     `|---|---|`,
-    `| Minimum | ${timeToShip.minMinutes} |`,
-    `| Maximum | ${timeToShip.maxMinutes} |`,
+    `| Minimum | ${timeToShip.status === "unmeasured" ? "Unmeasured" : timeToShip.minMinutes} |`,
+    `| Maximum | ${timeToShip.status === "unmeasured" ? "Unmeasured" : timeToShip.maxMinutes} |`,
     ``,
   ].join("\n");
 
@@ -202,22 +207,22 @@ function buildReadinessMd(input: ReportInput): string {
 
   // Section 12: Approval-Gated Actions
   const approvalSection = [
-    `## Approval-Gated Actions`,
+    `## Proposed-action review`,
     ``,
-    `All destructive or external-write actions require human approval via:`,
+    `Review records acceptance or rejection only. No repository writes or action execution exist. The run does not pause. The report is a completion snapshot; subsequent review decisions are in the audit log.`,
     `\`POST /api/approvals/:id/approve\``,
     ``,
   ].join("\n");
 
   // Section 13: External Evidence Status
   const exaApiKey = !!process.env["EXA_API_KEY"];
-  const exaStatusLabel = !EXA_ENABLED
+  const exaStatusLabel = mode === "demo" ? "disabled for sample mode" : !EXA_ENABLED
     ? "skipped — set `ENABLE_EXA=true` to enable"
     : !exaApiKey
     ? "skipped — `EXA_API_KEY` not configured"
     : evidence.length > 0
     ? `live — ${evidence.length} result(s) retrieved from Exa`
-    : "skipped — no uncertainty signals detected";
+    : "no results — not requested, unavailable, or no matches (see audit log)";
 
   const evidenceSection = [
     `## External Evidence Check`,
@@ -283,21 +288,21 @@ function buildReadinessMd(input: ReportInput): string {
 
 function buildIssueDraftMd(input: ReportInput): string {
   const { run, score, timeToShip, assessorOutput, mode } = input;
-  const decision = assessorOutput?.decision ?? (score.total >= 71 ? "ship" : "hold");
-  const blockers = assessorOutput?.blockers ?? score.categories.filter((c) => !c.pass).map((c) => c.name);
+  const decision = decisionForScore(score);
+  const blockers = assessorOutput?.blockers ?? score.categories.filter((c) => c.measurement !== "unknown" && !c.pass).map((c) => c.name);
 
   return [
     `## ShipClaw Release Readiness Assessment`,
     ``,
     `**Verdict:** ${decision.toUpperCase()} | **Score:** ${score.total}/100 (${score.band}) | **Mode:** ${mode}`,
     ``,
-    `### Time-to-Demo-Ready`,
-    `${timeToShip.minMinutes}–${timeToShip.maxMinutes} minutes`,
+    `### Illustrative remediation effort`,
+    timeToShip.status === "unmeasured" ? "Unmeasured; no measured weaknesses to estimate." : `${timeToShip.minMinutes}–${timeToShip.maxMinutes} illustrative minutes for observed weaknesses only; unknown work excluded. Not a release ETA.`,
     ``,
     `### Blocker Checklist`,
     blockers.length > 0
       ? blockers.map((b) => `- [ ] ${b}`).join("\n")
-      : "- [x] No blockers detected",
+      : "- [ ] Verify unmeasured areas; no measured weaknesses identified",
     ``,
     `### Evidence`,
     score.categories

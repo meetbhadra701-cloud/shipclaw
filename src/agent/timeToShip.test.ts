@@ -31,14 +31,14 @@ describe("estimateTimeToShip", () => {
     expect(estimate.reasons).toContain("1 medium issue(s) × 20min each");
   });
 
-  it("keeps a minimum 30 minute estimate when no blockers are found", () => {
+  it("does not invent an effort estimate when no measured weaknesses exist", () => {
     const estimate = estimateTimeToShip({
       mode: "live",
       riskFingerprint: baseFingerprint,
     });
 
-    expect(estimate.minMinutes).toBe(30);
-    expect(estimate.maxMinutes).toBe(45);
-    expect(estimate.reasons).toEqual(["No significant blockers detected — minimal remediation expected"]);
+    expect(estimate.minMinutes).toBe(0);
+    expect(estimate.maxMinutes).toBe(0);
+    expect(estimate.reasons).toContain("No measured weaknesses to estimate; unknown work is excluded");
   });
 });

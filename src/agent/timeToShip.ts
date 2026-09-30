@@ -33,19 +33,20 @@ export function estimateTimeToShip(input: TimeToShipInput): TimeToShipEstimate {
     highCount * MINUTES_PER_HIGH_BLOCKER +
     mediumCount * MINUTES_PER_MEDIUM_BLOCKER;
 
-  const minMinutes = Math.max(30, baseMin);
+  const minMinutes = baseMin > 0 ? Math.max(30, baseMin) : 0;
   const maxMinutes = Math.round(minMinutes * TIME_BUFFER_MULTIPLIER);
 
   const reasons: string[] = [];
   if (criticalCount > 0) reasons.push(`${criticalCount} critical blocker(s) × ${MINUTES_PER_CRITICAL_BLOCKER}min each`);
   if (highCount > 0) reasons.push(`${highCount} high-severity issue(s) × ${MINUTES_PER_HIGH_BLOCKER}min each`);
   if (mediumCount > 0) reasons.push(`${mediumCount} medium issue(s) × ${MINUTES_PER_MEDIUM_BLOCKER}min each`);
-  if (reasons.length === 0) reasons.push("No significant blockers detected — minimal remediation expected");
+  if (reasons.length === 0) reasons.push("No measured weaknesses to estimate; unknown work is excluded");
 
   return {
+    status: baseMin > 0 ? "illustrative" : "unmeasured",
     minMinutes,
     maxMinutes,
-    reasons,
+    reasons: [...reasons, "Illustrative effort for measured weaknesses only, not a ship date. Unknown work is excluded."],
     heuristic: `blocker-weighted: critical×${MINUTES_PER_CRITICAL_BLOCKER} + high×${MINUTES_PER_HIGH_BLOCKER} + medium×${MINUTES_PER_MEDIUM_BLOCKER} min, buffer ×${TIME_BUFFER_MULTIPLIER}`,
     mode,
   };

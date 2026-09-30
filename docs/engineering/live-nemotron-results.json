@@ -1,0 +1,14 @@
+{
+  "runId": "DA2_sD-Lb4Lg",
+  "testedAt": "2026-09-30T02:21:19.109Z",
+  "repo": "https://github.com/expressjs/express",
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "source": "nemotron",
+  "validatedByExistingZodSchema": true,
+  "score": 63,
+  "scoreUnchangedBeforeAndAfterModel": true,
+  "independentlyRecomputedScore": 63,
+  "decision": "hold",
+  "uiLabel": "Live Nemotron response · nvidia/nemotron-3.5-lightning-30b-a3b from the score above",
+  "pageErrors": 0
+}

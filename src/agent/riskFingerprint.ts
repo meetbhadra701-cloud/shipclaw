@@ -20,7 +20,7 @@ export function buildRiskFingerprint(input: RiskFingerprintInput): RiskFingerpri
   const basedOnMemory = priorRunCount > 0;
 
   const items = score.categories
-    .filter((c) => !c.pass)
+    .filter((c) => c.measurement !== "unknown" && !c.pass)
     .map((c) => ({
       signal: c.name,
       severity: (c.rawScore < 30 ? "critical" : c.rawScore < 50 ? "high" : "medium") as RiskFingerprint["items"][0]["severity"],
